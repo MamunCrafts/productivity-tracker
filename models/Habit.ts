@@ -6,16 +6,22 @@ type HabitDocument = Habit & mongoose.Document;
 const HabitSchema = new Schema<HabitDocument>({
   id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  description: { type: String },
+  description: { type: String, default: "" },
   totalHours: { type: Number, required: true },
   perDayHours: { type: Number, required: true },
-  timeSlot: { type: String },
-  weekFrequency: { type: Number, required: true },
-  totalDays: { type: Number },
+  timeSlot: { type: String, default: "" },
+  weekFrequency: { type: Number, required: true, default: 7 },
+  totalDays: { type: Number, default: 30 },
   createdAt: { type: String, required: true },
   completed: { type: Boolean, default: false },
+  completedAt: { type: String, default: null },
   color: { type: String, required: true },
-  status: { type: String, enum: ["Active", "Deleted"], default: "Active" },
+  // Paused keeps a habit out of the working list without deleting it.
+  status: {
+    type: String,
+    enum: ["Active", "Paused", "Deleted"],
+    default: "Active",
+  },
 });
 
 // Check if model already exists to prevent overwrite error in hot reload

@@ -11,132 +11,160 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  CartesianGrid,
 } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { format, subDays } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
+import { VIZ } from "@/lib/viz";
+import { dayKey, formatHours, toHours } from "@/lib/analytics";
+import { VizTooltip } from "./analytics/ChartCard";
 
 interface AnalyticsProps {
   habit: Habit;
 }
 
+const WINDOW_DAYS = 21;
+
+function Figure({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="rounded-lg border border-line bg-base p-4">
+      <p className="text-xs uppercase tracking-[0.14em] text-ink-3">{label}</p>
+      <p className="mt-2 font-mono text-2xl text-ink tnum">{value}</p>
+      <p className="mt-1 text-xs text-ink-3">{hint}</p>
+    </div>
+  );
+}
+
 export function HabitAnalytics({ habit }: AnalyticsProps) {
   const logs = useAppSelector((state) => state.habit.logs);
 
-  const data = useMemo(() => {
-    const last21Days = Array.from({ length: 21 }, (_, i) => {
-      const date = subDays(new Date(), 20 - i);
-      const isToday =
-        format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+  const { data, totalHours, daysHit } = useMemo(() => {
+    const mine = logs.filter((l) => l.habitId === habit.id);
+    const byDay = new Map<string, number>();
+    for (const log of mine) {
+      byDay.set(log.date, (byDay.get(log.date) ?? 0) + log.durationSeconds);
+    }
+
+    const today = dayKey(new Date());
+    const series = Array.from({ length: WINDOW_DAYS }, (_, i) => {
+      const date = dayKey(subDays(new Date(), WINDOW_DAYS - 1 - i));
       return {
-        date: format(date, "yyyy-MM-dd"),
-        displayDate: isToday ? "Today" : format(date, "MMM dd"),
-        hours: 0,
+        date,
+        label: date === today ? "Today" : format(parseISO(date), "MMM d"),
+        hours: Number(toHours(byDay.get(date) ?? 0).toFixed(2)),
       };
     });
 
-    const habitLogs = logs.filter((l) => l.habitId === habit.id);
-
-    habitLogs.forEach((log) => {
-      const day = last21Days.find((d) => d.date === log.date);
-      if (day) {
-        day.hours += log.durationSeconds / 3600;
-      }
-    });
-
-    return last21Days.map((d) => ({
-      ...d,
-      hours: Number(d.hours.toFixed(2)),
-    }));
+    return {
+      data: series,
+      totalHours: toHours(mine.reduce((sum, l) => sum + l.durationSeconds, 0)),
+      daysHit: series.filter((d) => d.hours > 0).length,
+    };
   }, [logs, habit.id]);
 
-  const totalHours = useMemo(() => {
-    return (
-      logs
-        .filter((l) => l.habitId === habit.id)
-        .reduce((acc, curr) => acc + curr.durationSeconds, 0) / 3600
-    );
-  }, [logs, habit.id]);
+  const pct =
+    habit.totalHours > 0 ? Math.min((totalHours / habit.totalHours) * 100, 100) : 0;
+  const hasData = data.some((d) => d.hours > 0);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
-              Total Hours Focused
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-zinc-50">
-              {totalHours.toFixed(1)} hrs
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Target: {habit.totalHours} hrs
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">
-              Daily Goal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-zinc-50">
-              {habit.perDayHours} hrs
-            </div>
-            <p className="text-xs text-muted-foreground">Required per day</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Figure
+          label="Logged"
+          value={totalHours.toFixed(1)}
+          hint={`of ${habit.totalHours} hrs · ${Math.round(pct)}%`}
+        />
+        <Figure
+          label="Daily goal"
+          value={`${habit.perDayHours}h`}
+          hint={habit.timeSlot || "No time slot set"}
+        />
+        <Figure
+          label="Days active"
+          value={`${daysHit}`}
+          hint={`of the last ${WINDOW_DAYS}`}
+        />
       </div>
 
-      <Card className="bg-zinc-900 border-zinc-800">
-        <CardHeader>
-          <CardTitle className="text-zinc-50">Last 21 Days Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px] w-full">
+      <div>
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <h3 className="text-sm font-medium text-ink">Last {WINDOW_DAYS} days</h3>
+          <p className="text-xs text-ink-3">
+            Solid bars met the <span className="tnum">{habit.perDayHours}h</span> daily goal
+          </p>
+        </div>
+
+        {hasData ? (
+          <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
+              <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
+                <CartesianGrid stroke={VIZ.grid} strokeWidth={1} vertical={false} />
                 <XAxis
-                  dataKey="displayDate"
-                  stroke="#71717a"
-                  fontSize={12}
+                  dataKey="label"
+                  stroke={VIZ.muted}
+                  fontSize={11}
                   tickLine={false}
                   axisLine={false}
+                  minTickGap={16}
+                  interval="preserveStartEnd"
                 />
                 <YAxis
-                  stroke="#71717a"
-                  fontSize={12}
+                  stroke={VIZ.muted}
+                  fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `${value}h`}
+                  width={44}
+                  tickFormatter={(v) => `${v}h`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#18181b",
-                    border: "1px solid #27272a",
-                    borderRadius: "8px",
-                    color: "#fff",
+                  cursor={{ fill: "rgba(255,255,255,0.04)" }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const row = payload[0].payload as (typeof data)[number];
+                    return (
+                      <VizTooltip
+                        label={format(parseISO(row.date), "EEE, MMM d")}
+                        rows={[
+                          {
+                            name:
+                              row.hours >= habit.perDayHours ? "goal met" : "logged",
+                            value: formatHours(row.hours),
+                            color: habit.color,
+                          },
+                        ]}
+                      />
+                    );
                   }}
-                  itemStyle={{ color: "#fff" }}
-                  labelStyle={{ color: "#a1a1aa" }}
-                  cursor={{ fill: "rgba(255,255,255,0.05)" }}
                 />
-                <Bar dataKey="hours" radius={[4, 4, 0, 0]}>
-                  {data.map((entry, index) => (
+                <Bar
+                  dataKey="hours"
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={20}
+                  isAnimationActive={false}
+                >
+                  {data.map((entry) => (
                     <Cell
-                      key={`cell-${index}`}
+                      key={entry.date}
                       fill={habit.color}
-                      opacity={entry.hours > 0 ? 1 : 0.3}
+                      // Days that met the goal read solid; short days recede.
+                      fillOpacity={
+                        entry.hours === 0
+                          ? 0.14
+                          : entry.hours >= habit.perDayHours
+                            ? 1
+                            : 0.45
+                      }
                     />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-line text-sm text-ink-3">
+            No time logged in the last {WINDOW_DAYS} days.
+          </div>
+        )}
+      </div>
     </div>
   );
 }

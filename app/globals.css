@@ -1,34 +1,75 @@
 @import "tailwindcss";
 
+/*
+  "Reading room" — a warm, low-glare dark palette for long study sessions.
+
+  Two deliberate departures from the old theme, both about eye strain:
+  1. No pure black and no pure white. Primary text lands at 13.4:1 instead of
+     21:1 — still far above WCAG AAA (7:1), but without the halation that makes
+     #fff-on-#000 shimmer and tire the eye during long reads.
+  2. Everything carries a slight warm cast (hues 32–42°). Warm-shifted darks
+     read as lamplight rather than screen glare, and keep high-energy blue out
+     of the largest surfaces — which is what you're staring at after dark.
+
+  Measured against the card surface (#1F1C18):
+    ink   13.41:1   ink-2  6.33:1   ink-3  3.01:1   amber  7.92:1
+*/
+
 :root {
-  --background: 240 10% 3.9%;
-  --foreground: 0 0% 98%;
-  --card: 240 10% 3.9%;
-  --card-foreground: 0 0% 98%;
-  --popover: 240 10% 3.9%;
-  --popover-foreground: 0 0% 98%;
-  --primary: 0 0% 98%;
-  --primary-foreground: 240 5.9% 10%;
-  --secondary: 240 3.7% 15.9%;
-  --secondary-foreground: 0 0% 98%;
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
-  --accent: 240 3.7% 15.9%;
-  --accent-foreground: 0 0% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 0 0% 98%;
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 240 4.9% 83.9%;
-  --radius: 0.5rem;
-  --chart-1: 220 70% 50%;
-  --chart-2: 160 60% 45%;
-  --chart-3: 30 80% 55%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  /* Surfaces, dark → light */
+  --base: 36 12% 8%;
+  --surface: 34 13% 11%;
+  --surface-2: 42 21% 12%;
+  --line: 35 14% 16%;
+  --line-2: 34 14% 22%;
+
+  /* Ink, strong → faint */
+  --ink: 39 29% 88%;
+  --ink-2: 38 12% 60%;
+  --ink-3: 36 11% 39%;
+
+  /* The single accent: lamp amber. Reserved for focus + the primary action. */
+  --amber: 32 71% 63%;
+  --amber-deep: 30 62% 44%;
+
+  --danger: 8 52% 47%;
+
+  /* shadcn primitive tokens mapped onto the palette above */
+  --background: var(--base);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--amber);
+  --primary-foreground: 36 40% 10%;
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-2);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --destructive-foreground: 39 29% 92%;
+  --border: var(--line);
+  --input: var(--line-2);
+  --ring: var(--amber);
+  --radius: 0.625rem;
 }
 
 @theme inline {
+  --color-base: hsl(var(--base));
+  --color-surface: hsl(var(--surface));
+  --color-surface-2: hsl(var(--surface-2));
+  --color-line: hsl(var(--line));
+  --color-line-2: hsl(var(--line-2));
+  --color-ink: hsl(var(--ink));
+  --color-ink-2: hsl(var(--ink-2));
+  --color-ink-3: hsl(var(--ink-3));
+  --color-amber: hsl(var(--amber));
+  --color-amber-deep: hsl(var(--amber-deep));
+  --color-danger: hsl(var(--danger));
+
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -48,54 +89,83 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-
-    to {
-      height: 0;
-    }
-  }
 
   @keyframes shimmer {
     0% {
-      background-position: -200% 0;
+      background-position: -150% 0;
     }
 
     100% {
-      background-position: 200% 0;
+      background-position: 150% 0;
     }
   }
 
-  --animate-shimmer: shimmer 2s ease-in-out infinite;
+  /* ~2.8s per pass: well under the 3Hz flash threshold (WCAG 2.3.1) and slow
+     enough to read as breathing rather than blinking, so a loading grid never
+     competes with the page for attention. */
+  --animate-shimmer: shimmer 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+
+  /* Focus-mode pacer. 10s per cycle ≈ 6 breaths/min, the rate paced-breathing
+     work associates with steadier attention. Slow enough to follow without
+     effort and to ignore entirely once you're working. */
+  @keyframes breathe {
+
+    0%,
+    100% {
+      transform: scale(0.92);
+      opacity: 0.35;
+    }
+
+    50% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+  }
+
+  --animate-breathe: breathe 10s ease-in-out infinite;
 }
 
 body {
   @apply bg-background text-foreground;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  /* Roomier than the default: long habit descriptions and modal copy are read,
+     not scanned. */
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numerals line up wherever they're compared — hours, timers, goal counts. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Looping motion is the part that causes strain for motion-sensitive readers.
+   Stop the loops and keep the static state — the skeleton still reads as a
+   skeleton, and the live "focusing" dot still reads as present. */
+@media (prefers-reduced-motion: reduce) {
+
+  .animate-shimmer,
+  .animate-ping,
+  .animate-pulse,
+  .animate-breathe {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Ensure all proper clickable elements have pointer cursor */
@@ -106,4 +176,11 @@ input[type="submit"],
 input[type="reset"],
 input[type="button"] {
   cursor: pointer;
+}
+
+/* One visible focus treatment everywhere, in the accent, never removed. */
+:focus-visible {
+  outline: 2px solid hsl(var(--amber));
+  outline-offset: 2px;
+  border-radius: 4px;
 }

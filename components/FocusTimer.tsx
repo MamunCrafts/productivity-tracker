@@ -3,10 +3,29 @@
 import { useEffect, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { stopTimerAsync } from "@/store/habitSlice";
+import {
+  stopTimerAsync,
+  clearTimer,
+  beginBreak,
+  resumeWork,
+  StopTimerInput,
+} from "@/store/habitSlice";
 import { Button } from "@/components/ui/button";
-import { Square, Maximize2, Minimize2 } from "lucide-react";
+import { Square, Maximize2, Minimize2, Coffee, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { SessionWrapUp } from "./SessionWrapUp";
+import { STALE_AFTER_HOURS } from "@/store/timerPersistence";
+
+/** Work / break lengths in minutes. "Continuous" opts out of intervals. */
+const CADENCES = [
+  { key: "off", label: "Continuous", work: 0, rest: 0 },
+  { key: "25/5", label: "25 / 5", work: 25, rest: 5 },
+  { key: "50/10", label: "50 / 10", work: 50, rest: 10 },
+] as const;
+
+type CadenceKey = (typeof CADENCES)[number]["key"];
+const CADENCE_STORAGE_KEY = "productivity-tracker:cadence";
 
 function formatElapsed(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
@@ -16,20 +35,45 @@ function formatElapsed(totalSeconds: number) {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
-function useElapsed(startTime: string) {
-  const [elapsed, setElapsed] = useState(() =>
-    Math.max(0, Math.floor((Date.now() - new Date(startTime).getTime()) / 1000))
-  );
+function humanDuration(totalSeconds: number) {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.round((totalSeconds % 3600) / 60);
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
+/**
+ * The clock lives in state rather than being read during render — `Date.now()`
+ * in a render body is impure and makes the component non-idempotent. The first
+ * sample is scheduled rather than called inline so the effect never sets state
+ * synchronously.
+ */
+function useNow(intervalMs = 1000) {
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
-    const started = new Date(startTime).getTime();
-    const id = setInterval(() => {
-      setElapsed(Math.max(0, Math.floor((Date.now() - started) / 1000)));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [startTime]);
+    const update = () => setNow(Date.now());
+    const first = setTimeout(update, 0);
+    const id = setInterval(update, intervalMs);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [intervalMs]);
 
-  return elapsed;
+  return now;
+}
+
+function readStoredCadence(): CadenceKey {
+  if (typeof window === "undefined") return "off";
+  try {
+    const stored = window.localStorage.getItem(CADENCE_STORAGE_KEY);
+    return stored && CADENCES.some((c) => c.key === stored)
+      ? (stored as CadenceKey)
+      : "off";
+  } catch {
+    return "off";
+  }
 }
 
 /**
@@ -47,21 +91,97 @@ function Session() {
   const activeTimer = useAppSelector((state) => state.habit.activeTimer);
   const habits = useAppSelector((state) => state.habit.habits);
   const dispatch = useAppDispatch();
-  const [immersive, setImmersive] = useState(false);
 
-  const startTime = activeTimer?.startTime ?? new Date().toISOString();
-  const elapsed = useElapsed(startTime);
+  const [immersive, setImmersive] = useState(false);
+  const [wrapUpOpen, setWrapUpOpen] = useState(false);
+  // Session only mounts once a timer exists, which is always after hydration,
+  // so reading localStorage in the initialiser can't cause a mismatch.
+  const [cadenceKey, setCadenceKey] = useState<CadenceKey>(readStoredCadence);
+  const [dismissedPhase, setDismissedPhase] = useState<string | null>(null);
+
+  const tickedNow = useNow();
+
+  const chooseCadence = (key: CadenceKey) => {
+    setCadenceKey(key);
+    window.localStorage.setItem(CADENCE_STORAGE_KEY, key);
+  };
 
   if (!activeTimer) return null;
 
   const habit = habits.find((h) => h.id === activeTimer.habitId);
   const color = habit?.color ?? "hsl(var(--amber))";
-  const stop = () => dispatch(stopTimerAsync());
+  const cadence = CADENCES.find((c) => c.key === cadenceKey) ?? CADENCES[0];
+  const onBreak = activeTimer.phase === "break";
+
+  const startedAt = new Date(activeTimer.startTime).getTime();
+  const phaseStartedAt = new Date(activeTimer.phaseStartedAt).getTime();
+  // Before the first tick lands (one frame), fall back to the start time so the
+  // clock reads 00:00 rather than a nonsense value.
+  const now = tickedNow || startedAt;
+
+  const wallClock = Math.max(0, Math.floor((now - startedAt) / 1000));
+  const phaseSeconds = Math.max(0, Math.floor((now - phaseStartedAt) / 1000));
+  const pendingBreak = onBreak ? phaseSeconds : 0;
+  // What will actually be written: wall clock minus every break.
+  const workSeconds = Math.max(
+    wallClock - activeTimer.breakSeconds - pendingBreak,
+    0
+  );
+
+  const isStale = wallClock > STALE_AFTER_HOURS * 3600 * 0.5;
+  const phaseLimit = onBreak ? cadence.rest * 60 : cadence.work * 60;
+  const phaseDue = phaseLimit > 0 && phaseSeconds >= phaseLimit;
+  const phaseId = `${activeTimer.phase}-${activeTimer.phaseStartedAt}`;
+  const showPrompt = phaseDue && dismissedPhase !== phaseId;
+
+  const save = (input: StopTimerInput) => {
+    dispatch(stopTimerAsync(input));
+    setWrapUpOpen(false);
+    setImmersive(false);
+  };
+
+  const discard = () => {
+    dispatch(clearTimer());
+    setWrapUpOpen(false);
+    setImmersive(false);
+  };
+
+  const cadencePicker = (
+    <div className="flex items-center gap-1" role="radiogroup" aria-label="Session cadence">
+      {CADENCES.map((option) => (
+        <button
+          key={option.key}
+          type="button"
+          role="radio"
+          aria-checked={cadenceKey === option.key}
+          onClick={() => chooseCadence(option.key)}
+          className={cn(
+            "rounded px-2 py-1 text-xs font-medium transition-colors",
+            cadenceKey === option.key
+              ? "bg-surface-2 text-ink"
+              : "text-ink-3 hover:text-ink-2"
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const breakControls = onBreak ? (
+    <Button variant="default" onClick={() => dispatch(resumeWork())} className="gap-2">
+      <Play className="h-3.5 w-3.5" fill="currentColor" />
+      Back to work
+    </Button>
+  ) : (
+    <Button variant="ghost" onClick={() => dispatch(beginBreak())} className="gap-2">
+      <Coffee className="h-4 w-4" />
+      Take a break
+    </Button>
+  );
 
   return (
     <>
-      {/* Docked strip at the edge of the page rather than a card floating over
-          the work — present without being something to look at. */}
       <AnimatePresence>
         {!immersive && (
           <motion.div
@@ -71,26 +191,64 @@ function Session() {
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-surface/95 backdrop-blur-xl"
           >
-            <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3">
+            {showPrompt && (
+              <div className="border-b border-line bg-amber/10 px-6 py-2 text-center text-sm text-amber">
+                {onBreak
+                  ? `Break's up — ${cadence.rest} minutes done.`
+                  : `${cadence.work} minutes of focus. Take a break?`}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onBreak ? dispatch(resumeWork()) : dispatch(beginBreak())
+                  }
+                  className="ml-3 underline underline-offset-2"
+                >
+                  {onBreak ? "Back to work" : "Start break"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedPhase(phaseId)}
+                  className="ml-3 text-ink-2 underline underline-offset-2"
+                >
+                  Keep going
+                </button>
+              </div>
+            )}
+
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
               <span
                 aria-hidden
                 className="h-8 w-[3px] shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: onBreak ? "hsl(var(--ink-3))" : color }}
               />
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-[0.14em] text-ink-3">
-                  In session
+                  {onBreak ? "On a break" : "In session"}
                 </p>
                 <p className="truncate font-display text-base text-ink">
                   {habit?.title ?? "Focus"}
                 </p>
               </div>
 
-              <p className="font-mono text-2xl text-ink tnum">
-                {formatElapsed(elapsed)}
-              </p>
+              <div className="text-right">
+                <p
+                  className={cn(
+                    "font-mono text-2xl tnum",
+                    onBreak ? "text-ink-3" : "text-ink"
+                  )}
+                >
+                  {formatElapsed(onBreak ? phaseSeconds : workSeconds)}
+                </p>
+                {activeTimer.breakSeconds > 0 && !onBreak && (
+                  <p className="text-[11px] text-ink-3 tnum">
+                    {humanDuration(activeTimer.breakSeconds)} on breaks
+                  </p>
+                )}
+              </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                {cadence.work > 0 && breakControls}
+                {cadencePicker}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -100,12 +258,19 @@ function Session() {
                   <Maximize2 className="h-4 w-4" />
                   <span className="sr-only">Enter focus mode</span>
                 </Button>
-                <Button variant="outline" onClick={stop} className="gap-2">
+                <Button variant="outline" onClick={() => setWrapUpOpen(true)} className="gap-2">
                   <Square className="h-3.5 w-3.5" fill="currentColor" />
                   Stop &amp; save
                 </Button>
               </div>
             </div>
+
+            {isStale && (
+              <p className="border-t border-line px-6 py-2 text-center text-xs text-ink-3">
+                This session has been running for {humanDuration(wallClock)}. If you
+                left it going by accident, discard it from the wrap-up.
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -128,47 +293,67 @@ function Session() {
               <span
                 aria-hidden
                 className="animate-breathe absolute h-[420px] w-[420px] rounded-full blur-2xl"
-                style={{ backgroundColor: color, opacity: 0.14 }}
+                style={{ backgroundColor: onBreak ? "hsl(var(--ink-3))" : color, opacity: 0.14 }}
               />
               <span
                 aria-hidden
                 className="animate-breathe absolute h-[300px] w-[300px] rounded-full border"
-                style={{ borderColor: color, opacity: 0.25 }}
+                style={{ borderColor: onBreak ? "hsl(var(--ink-3))" : color, opacity: 0.25 }}
               />
 
               <div className="relative z-10 text-center">
                 <p className="font-display text-2xl font-normal text-ink-2">
-                  {habit?.title ?? "Focus"}
+                  {onBreak ? "Break" : habit?.title ?? "Focus"}
                 </p>
                 <p className="mt-4 font-mono text-7xl font-light text-ink tnum sm:text-8xl">
-                  {formatElapsed(elapsed)}
+                  {formatElapsed(onBreak ? phaseSeconds : workSeconds)}
                 </p>
-                {habit && (
+                {habit && !onBreak && (
                   <p className="mt-3 text-sm text-ink-3">
                     Today&apos;s goal <span className="tnum">{habit.perDayHours}h</span>
                     {habit.timeSlot ? ` · ${habit.timeSlot}` : ""}
                   </p>
                 )}
+                {showPrompt && (
+                  <p className="mt-4 text-sm text-amber">
+                    {onBreak
+                      ? `Break's up — ${cadence.rest} minutes done.`
+                      : `${cadence.work} minutes of focus. Take a break?`}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="mt-16 flex items-center gap-3">
+            <div className="mt-16 flex flex-wrap items-center justify-center gap-3">
+              {cadence.work > 0 && breakControls}
               <Button variant="ghost" onClick={() => setImmersive(false)} className="gap-2">
                 <Minimize2 className="h-4 w-4" />
                 Exit focus mode
               </Button>
-              <Button variant="outline" onClick={stop} className="gap-2">
+              <Button variant="outline" onClick={() => setWrapUpOpen(true)} className="gap-2">
                 <Square className="h-3.5 w-3.5" fill="currentColor" />
                 Stop &amp; save
               </Button>
             </div>
 
-            <p className="mt-6 text-xs text-ink-3">
-              Your time keeps counting either way. Esc leaves focus mode.
-            </p>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              {cadencePicker}
+              <p className="text-xs text-ink-3">
+                Your time keeps counting either way. Esc leaves focus mode.
+              </p>
+            </div>
           </DialogPrimitive.Content>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
+
+      <SessionWrapUp
+        open={wrapUpOpen}
+        onOpenChange={setWrapUpOpen}
+        habitTitle={habit?.title ?? "this habit"}
+        duration={humanDuration(workSeconds)}
+        onSave={save}
+        onDiscard={discard}
+      />
     </>
   );
 }

@@ -15,8 +15,9 @@ import {
 } from "recharts";
 import { format, parseISO, subDays } from "date-fns";
 import { VIZ } from "@/lib/viz";
-import { dayKey, formatHours, toHours } from "@/lib/analytics";
+import { dayKey, formatHours, habitPace, toHours } from "@/lib/analytics";
 import { VizTooltip } from "./analytics/ChartCard";
+import { SessionList } from "./SessionList";
 
 interface AnalyticsProps {
   habit: Habit;
@@ -61,22 +62,38 @@ export function HabitAnalytics({ habit }: AnalyticsProps) {
     };
   }, [logs, habit.id]);
 
+  const pace = habitPace(habit, logs);
   const pct =
     habit.totalHours > 0 ? Math.min((totalHours / habit.totalHours) * 100, 100) : 0;
   const hasData = data.some((d) => d.hours > 0);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <Figure
           label="Logged"
           value={totalHours.toFixed(1)}
           hint={`of ${habit.totalHours} hrs · ${Math.round(pct)}%`}
         />
         <Figure
-          label="Daily goal"
-          value={`${habit.perDayHours}h`}
-          hint={habit.timeSlot || "No time slot set"}
+          label="This week"
+          value={`${pace.weekActiveDays}/${pace.weekTarget}`}
+          hint={pace.weekActiveDays >= pace.weekTarget ? "Target met" : "Days practised"}
+        />
+        <Figure
+          label="Needed daily"
+          value={
+            pace.requiredPerDay === null
+              ? "—"
+              : `${pace.requiredPerDay.toFixed(1)}h`
+          }
+          hint={
+            pace.daysRemaining === null
+              ? "No deadline set"
+              : pace.daysRemaining === 0
+                ? "Deadline passed"
+                : `${pace.daysRemaining} days left`
+          }
         />
         <Figure
           label="Days active"
@@ -164,6 +181,11 @@ export function HabitAnalytics({ habit }: AnalyticsProps) {
             No time logged in the last {WINDOW_DAYS} days.
           </div>
         )}
+      </div>
+
+      <div>
+        <h3 className="mb-3 text-sm font-medium text-ink">Sessions</h3>
+        <SessionList habitId={habit.id} />
       </div>
     </div>
   );

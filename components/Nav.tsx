@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, ListChecks } from "lucide-react";
+import { Activity, BarChart3, ListChecks, NotebookPen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Analytics", Icon: BarChart3 },
   { href: "/habits", label: "Habits", Icon: ListChecks },
+  { href: "/review", label: "Review", Icon: NotebookPen },
 ];
 
 export function Nav() {

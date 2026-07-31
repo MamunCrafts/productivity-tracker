@@ -10,10 +10,13 @@ import {
   hoursByHabit,
   rangeDays,
   RangeKey,
+  ratingVsDuration,
   streaks,
   summarize,
   weekdayTotals,
 } from "@/lib/analytics";
+import { ExportButton } from "@/components/analytics/ExportButton";
+import { FocusQualityChart } from "@/components/analytics/FocusQualityChart";
 import { RangeFilter } from "@/components/analytics/RangeFilter";
 import { HeroStat, StatTile } from "@/components/analytics/StatTile";
 import { DailyFocusChart } from "@/components/analytics/DailyFocusChart";
@@ -38,6 +41,7 @@ export default function Home() {
       byHabit: hoursByHabit(habits, scoped),
       weekday: weekdayTotals(scoped),
       heatmap: heatmapWeeks(scoped, days),
+      quality: ratingVsDuration(scoped),
       // Goals are lifetime targets, so this one deliberately ignores the range.
       allTime: hoursByHabit(habits, logs),
     };
@@ -57,8 +61,9 @@ export default function Home() {
         </p>
       </header>
 
-      <div className="mb-8">
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <RangeFilter value={range} onChange={setRange} />
+        <ExportButton />
       </div>
 
       {isLoading ? (
@@ -106,6 +111,8 @@ export default function Home() {
           </div>
 
           <ConsistencyHeatmap weeks={view.heatmap} />
+
+          <FocusQualityChart data={view.quality} />
 
           <section className="pt-6">
             <div className="mb-6 border-t border-line pt-6">

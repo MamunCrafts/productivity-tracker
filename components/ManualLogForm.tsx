@@ -33,6 +33,7 @@ export function ManualLogForm({ habitId, habitTitle }: ManualLogFormProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(() => dayKey(new Date()));
   const [minutes, setMinutes] = useState(30);
+  const [note, setNote] = useState("");
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,15 +42,20 @@ export function ManualLogForm({ habitId, habitTitle }: ManualLogFormProps) {
     const log: TimeLog = {
       id: crypto.randomUUID(),
       habitId,
+      // Untimed entries have no real clock times; `endTime: null` is what marks
+      // them as manual everywhere else in the app.
       startTime: new Date().toISOString(),
       endTime: null,
       durationSeconds: minutes * 60,
       date,
+      note: note.trim(),
+      focusRating: null,
     };
 
     dispatch(createLogAsync(log));
     setOpen(false);
     setMinutes(30);
+    setNote("");
   };
 
   const hours = Math.floor(minutes / 60);
@@ -125,6 +131,18 @@ export function ManualLogForm({ habitId, habitTitle }: ManualLogFormProps) {
               onChange={(e) => setDate(e.target.value)}
               className="font-mono tnum"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="log-note" className="text-ink-2">
+              What you worked on <span className="text-ink-3">(optional)</span>
+            </Label>
+            <Input
+              id="log-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Reviewed the reducer chapter"
             />
           </div>
 

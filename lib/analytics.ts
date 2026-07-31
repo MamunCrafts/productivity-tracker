@@ -1,6 +1,14 @@
 import { format, subDays, startOfWeek, addDays, parseISO } from "date-fns";
 import { Habit, TimeLog } from "@/types";
 
+export const FOCUS_RATINGS = [
+  { value: 1, label: "Scattered" },
+  { value: 2, label: "Patchy" },
+  { value: 3, label: "Steady" },
+  { value: 4, label: "Sharp" },
+  { value: 5, label: "Deep" },
+] as const;
+
 /** Logs store `date` as a local-time YYYY-MM-DD key; every bucket here uses the same key. */
 export const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
 export const toHours = (seconds: number) => seconds / 3600;

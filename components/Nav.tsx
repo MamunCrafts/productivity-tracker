@@ -16,10 +16,16 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-base/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-3">
-        <Link href="/" className="flex items-center gap-2 font-display text-base text-ink">
-          <Activity className="h-4 w-4 text-amber" />
-          Productivity Tracker
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2 font-display text-base text-ink"
+        >
+          <Activity className="h-4 w-4 shrink-0 text-amber" />
+          {/* The wordmark is the first thing to go on a phone — the three
+              destinations matter more than the name of the app you're in. */}
+          <span className="hidden sm:inline">Productivity Tracker</span>
+          <span className="sr-only sm:hidden">Productivity Tracker</span>
         </Link>
         <div className="flex items-center gap-1">
           {LINKS.map(({ href, label, Icon }) => {
@@ -30,7 +36,7 @@ export function Nav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3",
                   active
                     ? "bg-surface-2 text-ink"
                     : "text-ink-2 hover:bg-surface hover:text-ink"

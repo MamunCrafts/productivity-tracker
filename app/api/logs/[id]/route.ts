@@ -37,17 +37,26 @@ export async function PATCH(
     );
   }
 
-  const log = await TimeLogModel.findOneAndUpdate(
-    { id },
-    { $set: patch },
-    { new: true, runValidators: true }
-  );
+  try {
+    const log = await TimeLogModel.findOneAndUpdate(
+      { id },
+      { $set: patch },
+      { new: true, runValidators: true }
+    );
 
-  if (!log) {
-    return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    if (!log) {
+      return NextResponse.json({ error: "Log not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(log);
+  } catch (error) {
+    // A schema violation (focusRating outside 1-5, say) is the client's
+    // mistake, not a server fault — surface it as 400 rather than 500.
+    if (error instanceof Error && error.name === "ValidationError") {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
   }
-
-  return NextResponse.json(log);
 }
 
 /**

@@ -41,17 +41,25 @@ export async function PATCH(
     return NextResponse.json({ error: "No editable fields provided" }, { status: 400 });
   }
 
-  const habit = await HabitModel.findOneAndUpdate(
-    { id },
-    { $set: patch },
-    { new: true, runValidators: true }
-  );
+  try {
+    const habit = await HabitModel.findOneAndUpdate(
+      { id },
+      { $set: patch },
+      { new: true, runValidators: true }
+    );
 
-  if (!habit) {
-    return NextResponse.json({ error: "Habit not found" }, { status: 404 });
+    if (!habit) {
+      return NextResponse.json({ error: "Habit not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(habit);
+  } catch (error) {
+    // A schema violation is the client's mistake, not a server fault.
+    if (error instanceof Error && error.name === "ValidationError") {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
   }
-
-  return NextResponse.json(habit);
 }
 
 export async function DELETE(

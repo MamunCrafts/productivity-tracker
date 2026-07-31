@@ -38,7 +38,10 @@ export async function GET(request: Request) {
   ]);
 
   const titleById = new Map(habits.map((h) => [h.id, h.title]));
-  const stamp = new Date().toISOString().slice(0, 10);
+  // Local date, matching the rows' own `date` keys — a UTC stamp would label
+  // the file with yesterday for anyone west of Greenwich in the evening.
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const rows = logs.map((log) => ({
     date: log.date,

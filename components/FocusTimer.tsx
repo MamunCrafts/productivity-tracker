@@ -168,15 +168,26 @@ function Session() {
     </div>
   );
 
+  /** Labels collapse to icons on narrow screens so the dock stays one row. */
   const breakControls = onBreak ? (
-    <Button variant="default" onClick={() => dispatch(resumeWork())} className="gap-2">
+    <Button
+      variant="default"
+      onClick={() => dispatch(resumeWork())}
+      className="gap-2 px-3 sm:px-4"
+      title="Back to work"
+    >
       <Play className="h-3.5 w-3.5" fill="currentColor" />
-      Back to work
+      <span className="hidden sm:inline">Back to work</span>
     </Button>
   ) : (
-    <Button variant="ghost" onClick={() => dispatch(beginBreak())} className="gap-2">
+    <Button
+      variant="ghost"
+      onClick={() => dispatch(beginBreak())}
+      className="gap-2 px-3 sm:px-4"
+      title="Take a break"
+    >
       <Coffee className="h-4 w-4" />
-      Take a break
+      <span className="hidden sm:inline">Take a break</span>
     </Button>
   );
 
@@ -215,7 +226,7 @@ function Session() {
               </div>
             )}
 
-            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:gap-x-4 sm:px-6">
               <span
                 aria-hidden
                 className="h-8 w-[3px] shrink-0 rounded-full"
@@ -230,10 +241,10 @@ function Session() {
                 </p>
               </div>
 
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p
                   className={cn(
-                    "font-mono text-2xl tnum",
+                    "font-mono text-xl tnum sm:text-2xl",
                     onBreak ? "text-ink-3" : "text-ink"
                   )}
                 >
@@ -246,9 +257,11 @@ function Session() {
                 )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                 {cadence.work > 0 && breakControls}
-                {cadencePicker}
+                {/* The cadence picker lives in focus mode on small screens —
+                    four extra controls would wrap the dock onto three rows. */}
+                <div className="hidden md:flex">{cadencePicker}</div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -258,9 +271,14 @@ function Session() {
                   <Maximize2 className="h-4 w-4" />
                   <span className="sr-only">Enter focus mode</span>
                 </Button>
-                <Button variant="outline" onClick={() => setWrapUpOpen(true)} className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setWrapUpOpen(true)}
+                  className="gap-2 px-3 sm:px-4"
+                  title="Stop and save"
+                >
                   <Square className="h-3.5 w-3.5" fill="currentColor" />
-                  Stop &amp; save
+                  <span className="hidden sm:inline">Stop &amp; save</span>
                 </Button>
               </div>
             </div>
@@ -281,31 +299,33 @@ function Session() {
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-base data-[state=open]:animate-in data-[state=open]:fade-in-0" />
           <DialogPrimitive.Content
             aria-label="Focus session"
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6 focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden px-6 focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0"
           >
             <DialogPrimitive.Title className="sr-only">
               Focusing on {habit?.title ?? "your habit"}
             </DialogPrimitive.Title>
 
-            <div className="relative flex items-center justify-center">
+            <div className="relative flex w-full max-w-full items-center justify-center">
               {/* A 10s pacer, about six breaths a minute. Ambient and ignorable,
-                  and it stops entirely under prefers-reduced-motion. */}
+                  and it stops entirely under prefers-reduced-motion. Sized
+                  against the viewport so the rings never push the page wider
+                  than the screen on a phone. */}
               <span
                 aria-hidden
-                className="animate-breathe absolute h-[420px] w-[420px] rounded-full blur-2xl"
+                className="animate-breathe absolute h-[min(420px,88vw)] w-[min(420px,88vw)] rounded-full blur-2xl"
                 style={{ backgroundColor: onBreak ? "hsl(var(--ink-3))" : color, opacity: 0.14 }}
               />
               <span
                 aria-hidden
-                className="animate-breathe absolute h-[300px] w-[300px] rounded-full border"
+                className="animate-breathe absolute h-[min(300px,66vw)] w-[min(300px,66vw)] rounded-full border"
                 style={{ borderColor: onBreak ? "hsl(var(--ink-3))" : color, opacity: 0.25 }}
               />
 
-              <div className="relative z-10 text-center">
-                <p className="font-display text-2xl font-normal text-ink-2">
+              <div className="relative z-10 max-w-full px-2 text-center">
+                <p className="truncate font-display text-xl font-normal text-ink-2 sm:text-2xl">
                   {onBreak ? "Break" : habit?.title ?? "Focus"}
                 </p>
-                <p className="mt-4 font-mono text-7xl font-light text-ink tnum sm:text-8xl">
+                <p className="mt-4 font-mono text-6xl font-light text-ink tnum sm:text-7xl md:text-8xl">
                   {formatElapsed(onBreak ? phaseSeconds : workSeconds)}
                 </p>
                 {habit && !onBreak && (

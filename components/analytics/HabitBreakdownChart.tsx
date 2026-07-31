@@ -14,7 +14,9 @@ import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
 import { VIZ } from "@/lib/viz";
 import { formatHours, HabitTotal } from "@/lib/analytics";
 
-const truncate = (value: string, max = 18) =>
+// Kept short: the label gutter plus the value gutter is fixed, so on a phone a
+// long habit name would leave the bars almost no room to grow into.
+const truncate = (value: string, max = 14) =>
   value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
 export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
@@ -56,7 +58,7 @@ export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
             <BarChart
               data={rows}
               layout="vertical"
-              margin={{ top: 0, right: 56, bottom: 0, left: 0 }}
+              margin={{ top: 0, right: 44, bottom: 0, left: 0 }}
               barCategoryGap={12}
             >
               <XAxis type="number" hide />
@@ -67,7 +69,7 @@ export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                width={132}
+                width={104}
               />
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}

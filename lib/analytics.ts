@@ -220,3 +220,178 @@ export function formatHours(hours: number) {
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   return `${hours.toFixed(1)}h`;
 }
+
+/** Hours logged against one habit on one day. */
+export function hoursOnDay(logs: TimeLog[], habitId: string, date: string) {
+  return toHours(
+    logs
+      .filter((l) => l.habitId === habitId && l.date === date)
+      .reduce((sum, l) => sum + l.durationSeconds, 0)
+  );
+}
+
+export type HabitPace = {
+  totalHours: number;
+  goalPct: number;
+  reachedGoal: boolean;
+  todayHours: number;
+  todayPct: number;
+  /** Distinct days with time logged in the trailing 7 days. */
+  weekActiveDays: number;
+  /** How many of those days the habit was meant to happen. */
+  weekTarget: number;
+  daysElapsed: number;
+  daysRemaining: number | null;
+  /** Hours/day still required to finish inside totalDays. */
+  requiredPerDay: number | null;
+  onTrack: boolean;
+};
+
+/**
+ * Turns `weekFrequency` and `totalDays` — both previously stored and never
+ * read — into an actual verdict on whether a habit is keeping pace.
+ */
+export function habitPace(habit: Habit, logs: TimeLog[]): HabitPace {
+  const mine = logs.filter((l) => l.habitId === habit.id);
+  const totalHours = toHours(mine.reduce((sum, l) => sum + l.durationSeconds, 0));
+  const today = dayKey(new Date());
+
+  const weekFrom = dayKey(subDays(new Date(), 6));
+  const weekActiveDays = new Set(
+    mine.filter((l) => l.date >= weekFrom && l.durationSeconds > 0).map((l) => l.date)
+  ).size;
+  const weekTarget = Math.min(Math.max(habit.weekFrequency || 7, 1), 7);
+
+  const daysElapsed =
+    Math.max(
+      Math.round((Date.now() - parseISO(habit.createdAt).getTime()) / 86_400_000),
+      0
+    ) + 1;
+  const daysRemaining =
+    habit.totalDays > 0 ? Math.max(habit.totalDays - daysElapsed, 0) : null;
+
+  const remainingHours = Math.max(habit.totalHours - totalHours, 0);
+  const requiredPerDay =
+    daysRemaining && daysRemaining > 0 ? remainingHours / daysRemaining : null;
+
+  const goalPct =
+    habit.totalHours > 0 ? Math.min((totalHours / habit.totalHours) * 100, 100) : 0;
+  const todayHours = hoursOnDay(logs, habit.id, today);
+
+  return {
+    totalHours,
+    goalPct,
+    reachedGoal: habit.totalHours > 0 && totalHours >= habit.totalHours,
+    todayHours,
+    todayPct:
+      habit.perDayHours > 0 ? Math.min((todayHours / habit.perDayHours) * 100, 100) : 0,
+    weekActiveDays,
+    weekTarget,
+    daysElapsed,
+    daysRemaining,
+    requiredPerDay,
+    // Behind only counts once the week is actually short, not mid-week.
+    onTrack: weekActiveDays >= weekTarget || requiredPerDay === null
+      ? true
+      : requiredPerDay <= habit.perDayHours,
+  };
+}
+
+export type WeekSummary = {
+  start: Date;
+  end: Date;
+  totalHours: number;
+  sessions: number;
+  activeDays: number;
+  bestDay: { date: string; hours: number } | null;
+  perHabit: { id: string; title: string; color: string; hours: number; target: number; met: boolean }[];
+  notes: { id: string; habitTitle: string; color: string; date: string; note: string; focusRating: number | null }[];
+  averageRating: number | null;
+};
+
+/** `offset` 0 is the current week, 1 the previous one, and so on (Mon–Sun). */
+export function weekSummary(
+  habits: Habit[],
+  logs: TimeLog[],
+  offset = 0
+): WeekSummary {
+  const start = startOfWeek(subDays(new Date(), offset * 7), { weekStartsOn: 1 });
+  const end = addDays(start, 6);
+  const from = dayKey(start);
+  const to = dayKey(end);
+
+  const scoped = logs.filter((l) => l.date >= from && l.date <= to);
+  const totalHours = toHours(scoped.reduce((sum, l) => sum + l.durationSeconds, 0));
+
+  const byDay = new Map<string, number>();
+  for (const log of scoped) {
+    byDay.set(log.date, (byDay.get(log.date) ?? 0) + log.durationSeconds);
+  }
+  const best = Array.from(byDay.entries()).sort((a, b) => b[1] - a[1])[0];
+
+  const perHabit = habits
+    .map((habit) => {
+      const mine = scoped.filter((l) => l.habitId === habit.id);
+      const days = new Set(mine.filter((l) => l.durationSeconds > 0).map((l) => l.date)).size;
+      const target = Math.min(Math.max(habit.weekFrequency || 7, 1), 7);
+      return {
+        id: habit.id,
+        title: habit.title,
+        color: habit.color,
+        hours: toHours(mine.reduce((sum, l) => sum + l.durationSeconds, 0)),
+        target,
+        met: days >= target,
+      };
+    })
+    .sort((a, b) => b.hours - a.hours);
+
+  const titleById = new Map(habits.map((h) => [h.id, h] as const));
+  const notes = scoped
+    .filter((l) => l.note && l.note.trim().length > 0)
+    .sort((a, b) => (a.date < b.date ? 1 : -1))
+    .map((l) => ({
+      id: l.id,
+      habitTitle: titleById.get(l.habitId)?.title ?? "Archived habit",
+      color: titleById.get(l.habitId)?.color ?? "#898781",
+      date: l.date,
+      note: l.note,
+      focusRating: l.focusRating ?? null,
+    }));
+
+  const rated = scoped.filter((l) => typeof l.focusRating === "number");
+
+  return {
+    start,
+    end,
+    totalHours,
+    sessions: scoped.length,
+    activeDays: byDay.size,
+    bestDay: best ? { date: best[0], hours: toHours(best[1]) } : null,
+    perHabit,
+    notes,
+    averageRating: rated.length
+      ? rated.reduce((sum, l) => sum + (l.focusRating ?? 0), 0) / rated.length
+      : null,
+  };
+}
+
+/** Mean focus rating per whole hour of a session, for the quality-vs-volume view. */
+export function ratingVsDuration(logs: TimeLog[]) {
+  const buckets = new Map<number, { total: number; count: number }>();
+  for (const log of logs) {
+    if (typeof log.focusRating !== "number") continue;
+    const bucket = Math.min(Math.max(Math.round(toHours(log.durationSeconds) * 2) / 2, 0.5), 4);
+    const entry = buckets.get(bucket) ?? { total: 0, count: 0 };
+    entry.total += log.focusRating;
+    entry.count += 1;
+    buckets.set(bucket, entry);
+  }
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([hours, { total, count }]) => ({
+      hours,
+      label: `${hours}h`,
+      rating: Number((total / count).toFixed(2)),
+      sessions: count,
+    }));
+}

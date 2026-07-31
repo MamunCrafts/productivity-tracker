@@ -60,7 +60,11 @@ Not urgent at current data volume, but this is where pressure lands first:
 
 ---
 
-## Suggested first slice
+## Still open
 
-**Session notes + timer persistence.** Both are small, they compound, and together
-they turn the app from a stopwatch into something worth consulting later.
+- **Authentication** — the one item above that was not built. It is a fork with
+  no obvious default (single-user password vs. a provider vs. multi-user
+  accounts), it needs a `userId` on both models plus a migration for existing
+  records, and picking wrong could lock you out of live data. Worth deciding
+  deliberately rather than defaulting.
+- **Server-side aggregation** — see the scaling notes above. Not needed yet.

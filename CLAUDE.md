@@ -32,7 +32,7 @@ Both use a client-generated `crypto.randomUUID()` string in an application-level
 
 ## Architecture
 
-**Two routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the habit CRUD dashboard (`app/habits/page.tsx`). `components/Nav.tsx` links them.
+**Three routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them.
 
 **Data flow is entirely client-side.** `app/layout.tsx` wraps both routes in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` to pull the *full* habit and log collections into Redux. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no per-habit, filtered, or paginated endpoint. Components read from the store only.
 
@@ -40,19 +40,25 @@ Everything derived — total hours, progress percentage, every chart on `/` — 
 
 **Single Redux slice** (`store/habitSlice.ts`, mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
 
-**The focus timer never persists until stopped.** `startTimer` is a plain reducer that writes `{habitId, startTime, logId}` into in-memory `activeTimer` — no DB write. `stopTimerAsync` reads that state, computes `durationSeconds`, and only then POSTs the `TimeLog`. A page refresh mid-session silently loses the running timer. `FocusTimer.tsx` is a fixed-position overlay rendered from the layout (so it survives route changes) and shows only when `activeTimer` is set. `ManualLogForm` writes a `TimeLog` directly with `endTime: null` and an approximate `startTime` — so **`startTime` is only trustworthy when `endTime !== null`**; don't build time-of-day analysis on it without that filter.
+**The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `FocusTimer.tsx` renders from the layout so it survives route changes.
 
-**Soft delete.** `DELETE /api/habits/[id]` sets `status: "Deleted"`; `GET /api/habits` filters `{ status: "Active" }`. Associated `TimeLog`s are deliberately left in place, so a habit's logs survive deletion. Anything listing habits must filter by status.
+`ManualLogForm` writes a `TimeLog` with `endTime: null`, so **`startTime` is only trustworthy when `endTime !== null`** — don't build time-of-day analysis on it without that filter. That same null is what distinguishes "timed" from "manual" in the session list and the export.
 
-**API surface** (`app/api/`) is thin — connect, query, return JSON, no validation or error handling:
+**Delete semantics differ by entity, deliberately.** `DELETE /api/habits/[id]` is soft (`status: "Deleted"`), and the habit's logs are left in place so its hours survive in analytics. `DELETE /api/logs/[id]` is a hard delete — a mistyped session is bad data, not history, and leaving it would skew every total.
+
+**API surface** (`app/api/`):
 
 | Route | Methods |
 |---|---|
-| `/api/habits` | `GET` (Active only), `POST` |
-| `/api/habits/[id]` | `DELETE` (soft) |
+| `/api/habits` | `GET` (everything not Deleted), `POST` |
+| `/api/habits/[id]` | `PATCH`, `DELETE` (soft) |
 | `/api/logs` | `GET` (all), `POST` |
+| `/api/logs/[id]` | `PATCH`, `DELETE` (hard) |
+| `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |
 
-No update endpoint exists for either entity. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+Both `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and both map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+
+**Changing a Mongoose schema needs a dev-server restart.** The `mongoose.models.X || mongoose.model(...)` hot-reload guard keeps the *old* compiled schema, so new fields get silently stripped on write until the process restarts. If a field you just added reads back as `null`, that's why — not your code.
 
 **Mongoose** connections are cached on `global.mongoose` to survive hot reload (`lib/db.ts`); every route must `await dbConnect()` first. Models use the `mongoose.models.X || mongoose.model(...)` guard for the same reason — copy that pattern in any new model.
 
@@ -98,4 +104,20 @@ Motion is deliberately slow and skippable. `animate-shimmer` runs ~2.8s per pass
 - **`/habits` is a single-column list, not a grid.** Each habit is one `HabitCard` row: color rail, title, 21-day consistency strip, totals, then one clear primary action with the secondary icons recessive until hover or focus. Progress is the 2px bar along the row's bottom edge, not a separate meter.
 - **Loading states** come from `components/ui/shimmer.tsx` (`ShimmerRows`, `ShimmerStat`). Keep new skeletons the same silhouette as the component they replace so nothing shifts on load.
 - `framer-motion` for row enter/layout animation, `recharts` for charts, `date-fns` for date math.
+
+## Mobile
+
+Design mobile-first for a ~360px viewport; the app is used on a phone as much as a desk.
+
+- **Nothing may exceed the viewport width.** Two past bugs came from fixed pixel sizes: the focus-mode breathing rings (now `min(420px,88vw)`) and the docked timer's control row. Prefer `min()`/`vw` over fixed `w-[Npx]`, and give wide content (tables, the heatmap, the range filter) its own `overflow-x-auto`.
+- **The docked session bar is the tightest space in the app.** It carries a title, a clock, and up to five controls. Button labels collapse to icons below `sm`, and the cadence picker is hidden below `md` — it stays reachable inside focus mode.
+- **Recharts reserves gutters in pixels, not percentages.** `HabitBreakdownChart`'s y-axis width plus its right margin is fixed, so long habit names are truncated to keep the bars readable on a phone. Check that arithmetic before widening either.
+- Secondary row actions sit at `opacity-70` rather than `0` precisely because touch has no hover — never gate a control behind `group-hover` alone.
+
+## React rules this codebase trips over
+
+`eslint-config-next` enforces the React purity rules, and both bite in timer code:
+
+- **No `Date.now()` during render.** `FocusTimer` keeps the clock in state via `useNow()`, which samples on an interval. Reading the clock in a render body fails `react-hooks/purity`.
+- **No synchronous `setState` in an effect body.** Schedule it (`setTimeout(fn, 0)`), use a lazy `useState` initialiser, or remount with a `key` — `FocusTimer` uses `key={logId}` so a new session gets a fresh component instead of an effect resetting the old one.
 - Import via the `@/*` alias (maps to repo root).

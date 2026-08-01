@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from 'mongoose';
+import { registerModel } from '@/lib/db';
 import { TimeLog } from '@/types';
 
 type TimeLogDocument = TimeLog & mongoose.Document;
@@ -15,6 +16,11 @@ const TimeLogSchema = new Schema<TimeLogDocument>({
   focusRating: { type: Number, default: null, min: 1, max: 5 },
 });
 
-const TimeLogModel: Model<TimeLogDocument> = mongoose.models.TimeLog || mongoose.model<TimeLogDocument>('TimeLog', TimeLogSchema);
+// registerModel keeps the hot-reload guard in production and rebuilds the
+// schema in development, so a newly added field isn't silently dropped.
+const TimeLogModel: Model<TimeLogDocument> = registerModel<TimeLogDocument>(
+  'TimeLog',
+  TimeLogSchema
+);
 
 export default TimeLogModel;

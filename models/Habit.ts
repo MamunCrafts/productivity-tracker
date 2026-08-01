@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { Habit } from "@/types";
 
 type HabitDocument = Habit & mongoose.Document;
@@ -26,8 +27,11 @@ const HabitSchema = new Schema<HabitDocument>({
   },
 });
 
-// Check if model already exists to prevent overwrite error in hot reload
-const HabitModel: Model<HabitDocument> =
-  mongoose.models.Habit || mongoose.model<HabitDocument>("Habit", HabitSchema);
+// registerModel keeps the hot-reload guard in production and rebuilds the
+// schema in development, so a newly added field isn't silently dropped.
+const HabitModel: Model<HabitDocument> = registerModel<HabitDocument>(
+  "Habit",
+  HabitSchema
+);
 
 export default HabitModel;

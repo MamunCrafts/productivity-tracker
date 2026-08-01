@@ -31,6 +31,8 @@ The README describes "Tasks"; the code has no such concept. The two real entitie
 
 - **Note** — imported markdown. `content` is the original file kept byte-for-byte; `blocks` is the parsed JSON tree the reader renders. `blocks`, `excerpt` and `wordCount` are **derived server-side from `content` on every write** and are absent from the PATCH whitelist, so the two can't drift. `habitId` is nullable like a task's, and notes hard-delete for the same reason.
 
+- **Category** — a folder for notes. Stored **flat** with a `parentId` (null at the root) and walked into a tree at render time by `lib/tree.ts`, so moving a folder is one write rather than rewriting a path on every descendant. Arbitrary depth.
+
 All of them use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.
 
 ## Architecture
@@ -56,6 +58,10 @@ Everything derived — total hours, progress percentage, every chart on `/` — 
 - **`lib/markdown.ts` and `lib/noteView.ts` are split on purpose.** The first imports remark; the second (`MAX_NOTE_BYTES`, `isRenderableImage`, `tableOfContents`, `readingMinutes`) imports nothing. Client components must import from `noteView`, or the whole parser lands in their bundle. Only `/notes/import` loads the parser, via a dynamic `import()`.
 - **Nothing the flattener can't model is dropped.** Unknown nodes become a `raw` block holding their original source and render visibly, because a note that silently loses a section is worse than one showing a block you can see.
 - **Import is preview-then-confirm.** A dropped file is read with `file.text()`, parsed in the browser, and rendered through the *same* `NoteBody` the reader uses; nothing is written until Save. There is no upload endpoint and no multipart body — only the text is ever sent, which is why a typed note and an imported one take the identical path.
+- **Folders live in the notes slice, not their own.** `state.note.categories` is the flat table; `lib/tree.ts` (`buildTree`, `subtreeIds`, `pathOf`, `wouldCycle`, `countsBySubtree`) is every derivation over it, and each function tolerates a broken table — an orphan re-roots, a cycle breaks rather than hangs.
+- **Selecting a folder includes its descendants**, which is why the sidebar counts are subtree totals. A parent reading "0" while its children hold notes looks empty when it isn't.
+- **Deleting a folder never deletes its contents.** Subfolders and notes are lifted to the deleted folder's parent (`movedTo` in the response tells the store where to re-home the rows it already holds), so a mistap costs a move, not content. `PATCH` refuses a move into the folder's own subtree — that would detach the branch from the root and it would simply vanish.
+- **The reader drops a leading `# H1` that matches the note's title** (`dropRedundantTitle`), because the page already prints the title above the body. Matched at render, not stripped at import: `content` stays intact, so renaming a note brings its original heading back rather than leaving it headless.
 - Relative image paths (`./img/x.png`) can't resolve — the folder was never imported — so they render as a placeholder rather than a broken image.
 
 **Three Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
@@ -80,13 +86,15 @@ Note that deleting a habit leaves any task pointing at it with a dangling `habit
 | `/api/tasks/[id]` | `PATCH`, `DELETE` (hard) |
 | `/api/notes` | `GET` (metadata only — projects `-content -blocks`), `POST` |
 | `/api/notes/[id]` | `GET` (full, body included), `PATCH`, `DELETE` (hard) |
+| `/api/categories` | `GET` (flat), `POST` |
+| `/api/categories/[id]` | `PATCH` (rejects cycles), `DELETE` (lifts contents to the parent) |
 | `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |
 
-All four `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+All five `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
 
-**Changing a Mongoose schema needs a dev-server restart.** The `mongoose.models.X || mongoose.model(...)` hot-reload guard keeps the *old* compiled schema, so new fields get silently stripped on write until the process restarts. If a field you just added reads back as `null`, that's why — not your code.
+**Changing a Mongoose schema no longer needs a dev-server restart** (as of 2026-08-01). It used to: the bare `mongoose.models.X || mongoose.model(...)` guard handed back a model compiled from the *old* schema, because `mongoose.models` lives on the mongoose singleton, which sits on `global` specifically so it survives hot reload — so any field added since was silently stripped on write, with no error, until the Node process was killed. `registerModel` in `lib/db.ts` now drops the cached model in development before rebuilding it, so saving the file is enough. Production keeps the cache untouched, since nothing is re-evaluated there.
 
-**Mongoose** connections are cached on `global.mongoose` to survive hot reload (`lib/db.ts`); every route must `await dbConnect()` first. Models use the `mongoose.models.X || mongoose.model(...)` guard for the same reason — copy that pattern in any new model.
+**Mongoose** connections are cached on `global.mongoose` to survive hot reload (`lib/db.ts`); every route must `await dbConnect()` first. Models are registered through **`registerModel(name, schema)`** from the same file — copy that, not a bare `mongoose.models.X ||` guard, in any new model; see the note above for what the bare guard costs.
 
 ## Analytics & charts
 

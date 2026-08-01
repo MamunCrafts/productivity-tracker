@@ -4,6 +4,7 @@ import "./globals.css";
 import StoreProvider from "./StoreProvider";
 import { Nav } from "@/components/Nav";
 import { FocusTimer } from "@/components/FocusTimer";
+import { Colophon } from "@/components/Colophon";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,32 +62,7 @@ export default function RootLayout({
           <FocusTimer />
         </StoreProvider>
 
-        {/* A colophon rather than a footer: in a book it's the short note at the
-            back saying who set the type. Same job here, and it lets the page end
-            quietly instead of with three centred lines competing for attention.
-            The bottom padding keeps it clear of the docked session bar. */}
-        <footer className="relative z-10 mt-auto border-t border-line">
-          <div className="mx-auto max-w-5xl px-6 pb-24 pt-8">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-ink-3">
-              Built by
-            </p>
-            <div className="mt-3 flex flex-col gap-x-8 gap-y-2 sm:flex-row sm:items-baseline sm:justify-between">
-              <p className="font-display text-lg text-ink">
-                Md AL Mamun Mim
-                <span className="ml-3 font-sans text-sm text-ink-2">
-                  Senior Software Developer
-                  <span className="mx-2 text-ink-3">·</span>
-                  Fanfare
-                </span>
-              </p>
-              <p className="shrink-0 text-xs text-ink-3">
-                <span className="tnum">{new Date().getFullYear()}</span>
-                <span className="mx-2">·</span>
-                All rights reserved
-              </p>
-            </div>
-          </div>
-        </footer>
+        <Colophon />
       </body>
     </html>
   );

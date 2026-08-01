@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { Category } from "@/types";
 
 type CategoryDocument = Category & mongoose.Document;
@@ -11,9 +12,11 @@ const CategorySchema = new Schema<CategoryDocument>({
   createdAt: { type: String, required: true },
 });
 
-// Check if model already exists to prevent overwrite error in hot reload
-const CategoryModel: Model<CategoryDocument> =
-  mongoose.models.Category ||
-  mongoose.model<CategoryDocument>("Category", CategorySchema);
+// registerModel keeps the hot-reload guard in production and rebuilds the
+// schema in development, so a newly added field isn't silently dropped.
+const CategoryModel: Model<CategoryDocument> = registerModel<CategoryDocument>(
+  "Category",
+  CategorySchema
+);
 
 export default CategoryModel;

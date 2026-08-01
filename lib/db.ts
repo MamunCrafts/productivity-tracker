@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Model, Schema } from 'mongoose';
 
 const MONGODB_URI = process.env.DATABASE_URL;
 
@@ -22,6 +22,30 @@ const cached: MongooseCache = (globalForMongoose.mongoose ??= {
   conn: null,
   promise: null,
 });
+
+/**
+ * Register a model without the stale-schema trap.
+ *
+ * The plain `mongoose.models.X || mongoose.model(...)` guard exists to avoid
+ * `OverwriteModelError` when a model file is re-evaluated by hot reload. But
+ * `mongoose.models` lives on the mongoose singleton, which sits on `global`
+ * precisely so it survives a reload — so the guard keeps handing back a model
+ * compiled from an *older* version of the schema. Any field added since is
+ * then silently dropped on write: no error, the value just never lands, and
+ * the only cure is killing the Node process.
+ *
+ * So in development the cached model is dropped first and rebuilt from the
+ * schema as it is right now. Saving a file is enough; a restart isn't. In
+ * production nothing is ever re-evaluated, so the cache is kept as-is.
+ */
+export function registerModel<T>(name: string, schema: Schema<T>): Model<T> {
+  if (process.env.NODE_ENV !== 'production' && mongoose.models[name]) {
+    mongoose.deleteModel(name);
+  }
+  return (
+    (mongoose.models[name] as Model<T>) ?? mongoose.model<T>(name, schema)
+  );
+}
 
 async function dbConnect() {
   if (cached.conn) {

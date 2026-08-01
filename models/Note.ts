@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { Note } from "@/types";
 import { MAX_NOTE_BYTES } from "@/lib/noteView";
 
@@ -33,8 +34,11 @@ const NoteSchema = new Schema<NoteDocument>({
   updatedAt: { type: String, required: true },
 });
 
-// Check if model already exists to prevent overwrite error in hot reload
-const NoteModel: Model<NoteDocument> =
-  mongoose.models.Note || mongoose.model<NoteDocument>("Note", NoteSchema);
+// registerModel keeps the hot-reload guard in production and rebuilds the
+// schema in development, so a newly added field isn't silently dropped.
+const NoteModel: Model<NoteDocument> = registerModel<NoteDocument>(
+  "Note",
+  NoteSchema
+);
 
 export default NoteModel;

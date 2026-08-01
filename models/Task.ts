@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { registerModel } from "@/lib/db";
 import { Task } from "@/types";
 
 type TaskDocument = Task & mongoose.Document;
@@ -21,8 +22,11 @@ const TaskSchema = new Schema<TaskDocument>({
   completedAt: { type: String, default: null },
 });
 
-// Check if model already exists to prevent overwrite error in hot reload
-const TaskModel: Model<TaskDocument> =
-  mongoose.models.Task || mongoose.model<TaskDocument>("Task", TaskSchema);
+// registerModel keeps the hot-reload guard in production and rebuilds the
+// schema in development, so a newly added field isn't silently dropped.
+const TaskModel: Model<TaskDocument> = registerModel<TaskDocument>(
+  "Task",
+  TaskSchema
+);
 
 export default TaskModel;

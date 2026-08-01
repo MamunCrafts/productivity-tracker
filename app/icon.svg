@@ -1,4 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#3b82f6"/>
-  <path d="M9 16l4 4 10-10" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <title>Productivity Tracker</title>
+
+  <!--
+    A lit core inside a ring — focus mode's breathing rings, reduced to the two
+    shapes that survive 16px. Amber is the one accent this palette allows to
+    mean "focus", which is what the whole app is for.
+
+    Replaces a #3b82f6 checkmark: a colour absent from the palette, in the hue
+    reserved here for chart data, saying "to-do app" — the one thing this
+    codebase isn't.
+
+    The warm tile is the card surface (#201D18), and it is load-bearing rather
+    than decoration: the dark theme's amber sits at 63% lightness and would wash
+    out on a white tab strip. Given its own ground the mark reads identically on
+    light and dark browser chrome, so the icon needs no theme switching of its own.
+
+    Geometry settled by rendering it at 16/20/24/32 rather than on paper. Two
+    things that lost: an open arc (the round caps closed into a comma, reading as
+    a "6"), and a two-tone ring and core — at 16px whichever one took the deeper
+    amber dropped out of the silhouette. One tone, two shapes, no hairlines: the
+    3.5-unit stroke lands at 1.75px when the 32-unit tile renders at 16.
+  -->
+  <rect width="32" height="32" rx="7" fill="#201D18"/>
+  <circle cx="16" cy="16" r="9" fill="none" stroke="#E4A55E" stroke-width="3.5"/>
+  <circle cx="16" cy="16" r="3.2" fill="#E4A55E"/>
 </svg>

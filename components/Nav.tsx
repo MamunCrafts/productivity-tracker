@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
   BarChart3,
   BookText,
   KanbanSquare,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Mark } from "@/components/Mark";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -48,7 +48,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
           href="/"
           className="flex shrink-0 items-center gap-2 font-display text-base text-ink"
         >
-          <Activity className="h-4 w-4 shrink-0 text-amber" />
+          <Mark className="h-4 w-4 shrink-0 text-amber" />
           {/* The wordmark is the first thing to go on a phone — the three
               destinations matter more than the name of the app you're in. */}
           <span className="hidden sm:inline">Productivity Tracker</span>

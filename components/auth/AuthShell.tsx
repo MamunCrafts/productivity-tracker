@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Activity, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Mark } from "@/components/Mark";
 
 /**
  * The frame both sign-in screens share.
@@ -50,7 +51,7 @@ export function AuthShell({
           href="/"
           className="mx-auto flex w-fit items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em] text-ink-2 transition-colors hover:text-ink"
         >
-          <Activity className="h-3.5 w-3.5 text-amber" aria-hidden />
+          <Mark className="h-3.5 w-3.5 text-amber" />
           Productivity Tracker
         </Link>
 

@@ -7,6 +7,7 @@ import {
   startTimer,
   deleteHabitAsync,
   updateHabitAsync,
+  togglePinAsync,
 } from "@/store/habitSlice";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
   Pause,
   CheckCircle2,
   RotateCcw,
+  Pin,
 } from "lucide-react";
 import {
   Dialog,
@@ -87,6 +89,7 @@ export function HabitCard({ habit }: HabitCardProps) {
   const isRunning = activeTimer?.habitId === habit.id;
   const isPaused = habit.status === "Paused";
   const isFinished = habit.completed;
+  const isPinned = Boolean(habit.pinnedAt);
 
   const pace = useMemo(() => habitPace(habit, logs), [habit, logs]);
 
@@ -149,6 +152,13 @@ export function HabitCard({ habit }: HabitCardProps) {
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
+            {/* Says why this row is sitting at the top of the list. */}
+            {isPinned && (
+              <Pin
+                className="h-3.5 w-3.5 shrink-0 -rotate-45 fill-current text-ink-3"
+                aria-hidden
+              />
+            )}
             <h3 className="truncate font-display text-xl font-medium leading-snug text-ink">
               {habit.title}
             </h3>
@@ -260,6 +270,22 @@ export function HabitCard({ habit }: HabitCardProps) {
           )}
 
           <div className="flex items-center gap-0.5 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+            <Button
+              size="icon"
+              variant="ghost"
+              className={cn("h-9 w-9", isPinned && "text-ink")}
+              title={isPinned ? "Unpin habit" : "Pin to top"}
+              aria-pressed={isPinned}
+              onClick={() => dispatch(togglePinAsync(habit))}
+            >
+              <Pin
+                className={cn("h-4 w-4 -rotate-45", isPinned && "fill-current")}
+              />
+              <span className="sr-only">
+                {isPinned ? `Unpin ${habit.title}` : `Pin ${habit.title} to top`}
+              </span>
+            </Button>
+
             {!isFinished && <ManualLogForm habitId={habit.id} habitTitle={habit.title} />}
 
             <HabitForm habit={habit} />

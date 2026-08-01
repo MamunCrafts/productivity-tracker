@@ -14,6 +14,9 @@ export interface Habit {
   completedAt: string | null; // ISO Date string, set when marked finished
   color: string; // Hex color for UI
   status: HabitStatus; // Paused hides it from the working list; Deleted is a soft delete
+  // ISO Date string set when pinned, null when not. A timestamp rather than a
+  // boolean so the most recently pinned habit can sort to the very top.
+  pinnedAt: string | null;
 }
 
 export interface TimeLog {
@@ -42,6 +45,7 @@ export type HabitPatch = Partial<
     | "status"
     | "completed"
     | "completedAt"
+    | "pinnedAt"
   >
 >;
 

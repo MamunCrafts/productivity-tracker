@@ -46,7 +46,13 @@ export const fetchLogs = createAsyncThunk("habit/fetchLogs", async () => {
 
 export type NewHabitInput = Omit<
   Habit,
-  "id" | "createdAt" | "completed" | "completedAt" | "color" | "status"
+  | "id"
+  | "createdAt"
+  | "completed"
+  | "completedAt"
+  | "color"
+  | "status"
+  | "pinnedAt"
 > & { color?: string };
 
 export const createHabit = createAsyncThunk(
@@ -58,6 +64,7 @@ export const createHabit = createAsyncThunk(
       completed: false,
       completedAt: null,
       status: "Active",
+      pinnedAt: null,
       ...habitData,
       color: habitData.color || "#3b82f6",
     };
@@ -80,6 +87,22 @@ export const updateHabitAsync = createAsyncThunk(
     });
     if (!response.ok) throw new Error("Could not update habit");
     return (await response.json()) as Habit;
+  }
+);
+
+/**
+ * Pinning stamps the current time so re-pinning an already-pinned habit still
+ * moves it above the others — the newest stamp always sorts first.
+ */
+export const togglePinAsync = createAsyncThunk(
+  "habit/togglePin",
+  async (habit: Habit, { dispatch }) => {
+    return dispatch(
+      updateHabitAsync({
+        id: habit.id,
+        patch: { pinnedAt: habit.pinnedAt ? null : new Date().toISOString() },
+      })
+    ).unwrap();
   }
 );
 
@@ -255,6 +278,20 @@ export const habitSlice = createSlice({
       });
   },
 });
+
+/**
+ * Pinned habits first, most recently pinned at the very top; everything else
+ * keeps the order it arrived in. Copies rather than sorting in place — the
+ * array comes straight from the store.
+ */
+export function sortPinnedFirst(habits: Habit[]): Habit[] {
+  return [...habits].sort((a, b) => {
+    if (a.pinnedAt && b.pinnedAt) return b.pinnedAt.localeCompare(a.pinnedAt);
+    if (a.pinnedAt) return -1;
+    if (b.pinnedAt) return 1;
+    return 0;
+  });
+}
 
 export const { startTimer, restoreTimer, beginBreak, resumeWork, clearTimer } =
   habitSlice.actions;

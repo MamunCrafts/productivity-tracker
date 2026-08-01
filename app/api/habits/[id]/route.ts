@@ -19,6 +19,7 @@ const EDITABLE: (keyof HabitPatch)[] = [
   "status",
   "completed",
   "completedAt",
+  "pinnedAt",
 ];
 
 function pickEditable(body: Record<string, unknown>): HabitPatch {

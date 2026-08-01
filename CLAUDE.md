@@ -25,7 +25,7 @@ Requires `.env` (or `.env.local`) with **`DATABASE_URL`** (the MongoDB connectio
 
 The README describes "Tasks"; the code has no such concept. The two real entities (`types/index.ts`) are:
 
-- **Habit** — a long-running goal with `totalHours`, `perDayHours`, `totalDays`, `weekFrequency`, a hex `color`, and `status: "Active" | "Deleted"`.
+- **Habit** — a long-running goal with `totalHours`, `perDayHours`, `totalDays`, `weekFrequency`, a hex `color`, and `status: "Active" | "Deleted"`. `pinnedAt` is a timestamp, not a boolean, so `sortPinnedFirst` (in `store/habitSlice.ts`) can put the *most recently* pinned habit at the top; pinning reorders within a `/habits` section, never across them.
 - **TimeLog** — one chunk of focused time against a habit: `habitId`, `durationSeconds`, and `date` (`YYYY-MM-DD`, used as the grouping key for analytics).
 
 Both use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.

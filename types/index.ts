@@ -1,3 +1,5 @@
+export * from "./notes";
+
 export type HabitStatus = "Active" | "Paused" | "Deleted";
 
 export interface Habit {

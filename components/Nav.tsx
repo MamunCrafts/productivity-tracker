@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   BarChart3,
+  BookText,
   KanbanSquare,
   ListChecks,
   NotebookPen,
@@ -15,6 +16,7 @@ const LINKS = [
   { href: "/", label: "Analytics", Icon: BarChart3 },
   { href: "/habits", label: "Habits", Icon: ListChecks },
   { href: "/tasks", label: "Board", Icon: KanbanSquare },
+  { href: "/notes", label: "Notes", Icon: BookText },
   { href: "/review", label: "Review", Icon: NotebookPen },
 ];
 
@@ -36,7 +38,10 @@ export function Nav() {
         </Link>
         <div className="flex items-center gap-1">
           {LINKS.map(({ href, label, Icon }) => {
-            const active = pathname === href;
+            // Notes has children (/notes/import, /notes/[id]); the tab has to
+            // stay lit inside them, so only "/" matches exactly.
+            const active =
+              href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Link
                 key={href}

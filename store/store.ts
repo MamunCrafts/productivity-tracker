@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import habitReducer from './habitSlice';
 import taskReducer from './taskSlice';
+import noteReducer from './noteSlice';
 import { timerPersistenceMiddleware } from './timerPersistence';
 
 export const store = configureStore({
   reducer: {
     habit: habitReducer,
     task: taskReducer,
+    note: noteReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(timerPersistenceMiddleware),

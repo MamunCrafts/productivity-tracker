@@ -29,13 +29,17 @@ The README describes "Tasks"; the code has no such concept. The two real entitie
 - **TimeLog** — one chunk of focused time against a habit: `habitId`, `durationSeconds`, and `date` (`YYYY-MM-DD`, used as the grouping key for analytics).
 - **Task** — a Kanban card. `status: "Todo" | "Doing" | "Done"` *is* the column (there are no user-defined columns), `order` is a **fractional** position within it, and `habitId` is **nullable** — a task may stand alone or borrow a habit's colour and name. Nothing in analytics derives from tasks, which is why they hard-delete.
 
-Both use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.
+- **Note** — imported markdown. `content` is the original file kept byte-for-byte; `blocks` is the parsed JSON tree the reader renders. `blocks`, `excerpt` and `wordCount` are **derived server-side from `content` on every write** and are absent from the PATCH whitelist, so the two can't drift. `habitId` is nullable like a task's, and notes hard-delete for the same reason.
+
+All of them use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.
 
 ## Architecture
 
-**Four routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/tasks` is the Kanban board (`app/tasks/page.tsx`), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them — below `sm` only the current destination shows its label, because four labels overflow a 360px viewport.
+**Five top-level routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/tasks` is the Kanban board (`app/tasks/page.tsx`), `/notes` is the markdown shelf (`app/notes/`, with `/notes/import` and `/notes/[id]` under it), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them — below `sm` only the current destination shows its label, because five labels overflow a 360px viewport. Nav marks a tab active with `startsWith`, not equality, so `/notes` stays lit inside its children; `/` is the one exact match.
 
-**Data flow is entirely client-side.** `app/layout.tsx` wraps every route in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` + `fetchTasks()` to pull those *full* collections into Redux. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no per-habit, filtered, or paginated endpoint. Components read from the store only.
+**Data flow is entirely client-side.** `app/layout.tsx` wraps every route in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` + `fetchTasks()` + `fetchNotes()`. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no filtered or paginated endpoint. Components read from the store only.
+
+Habits, logs and tasks are pulled in *whole*. **Notes are the one exception**, and deliberately: `fetchNotes()` gets metadata only (`GET /api/notes` projects `-content -blocks`), because a shelf of long imports is megabytes that would otherwise be refetched on every route. A note's body arrives from `GET /api/notes/[id]` when it is opened and is cached in `state.note.bodies`. This is the only per-entity GET in the app — don't copy it for anything whose rows are small.
 
 Everything derived — total hours, progress percentage, every chart on `/` — is computed in the browser by filtering `state.habit.logs`. There is no server-side aggregation. This is fine at current scale; if log volume grows, that's where the pressure lands.
 
@@ -46,7 +50,15 @@ Everything derived — total hours, progress percentage, every chart on `/` — 
 - **dnd-kit sensors are tuned for touch**: mouse activates after 6px, touch after a 200ms *hold*. That hold is why cards must **not** carry `touch-action: none` — a plain swipe over a card has to scroll the board.
 - Cross-column hovering doesn't reshuffle the target column live; the `DragOverlay` follows the cursor and the card lands correctly on drop. That's a deliberate trade for a fraction of the state juggling.
 
-**Two Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
+**Notes are their own module too.** `store/noteSlice.ts` (mounted as `note`), `lib/markdown.ts`, `lib/noteView.ts`, `components/notes/`, `models/Note.ts`, `app/api/notes/`. Like tasks it touches `habit` only for a linked habit's colour and title.
+
+- **The markdown is parsed once, at write time, on the server.** `parseNote()` turns the file into `Block[]` (`types/notes.ts` is that schema, not Mongoose — the field is a single `Mixed`). The reader is a `switch` over block types with the theme tokens applied directly, so there is no prose stylesheet and no markdown parser in the read path. Add a new element by extending the union in `types/notes.ts`, the flattener in `lib/markdown.ts`, and `BlockRenderer.tsx`.
+- **`lib/markdown.ts` and `lib/noteView.ts` are split on purpose.** The first imports remark; the second (`MAX_NOTE_BYTES`, `isRenderableImage`, `tableOfContents`, `readingMinutes`) imports nothing. Client components must import from `noteView`, or the whole parser lands in their bundle. Only `/notes/import` loads the parser, via a dynamic `import()`.
+- **Nothing the flattener can't model is dropped.** Unknown nodes become a `raw` block holding their original source and render visibly, because a note that silently loses a section is worse than one showing a block you can see.
+- **Import is preview-then-confirm.** A dropped file is read with `file.text()`, parsed in the browser, and rendered through the *same* `NoteBody` the reader uses; nothing is written until Save. There is no upload endpoint and no multipart body — only the text is ever sent, which is why a typed note and an imported one take the identical path.
+- Relative image paths (`./img/x.png`) can't resolve — the folder was never imported — so they render as a placeholder rather than a broken image.
+
+**Three Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
 
 **The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `FocusTimer.tsx` renders from the layout so it survives route changes.
 
@@ -66,9 +78,11 @@ Note that deleting a habit leaves any task pointing at it with a dangling `habit
 | `/api/logs/[id]` | `PATCH`, `DELETE` (hard) |
 | `/api/tasks` | `GET` (all, sorted by `order`), `POST` |
 | `/api/tasks/[id]` | `PATCH`, `DELETE` (hard) |
+| `/api/notes` | `GET` (metadata only — projects `-content -blocks`), `POST` |
+| `/api/notes/[id]` | `GET` (full, body included), `PATCH`, `DELETE` (hard) |
 | `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |
 
-All three `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+All four `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
 
 **Changing a Mongoose schema needs a dev-server restart.** The `mongoose.models.X || mongoose.model(...)` hot-reload guard keeps the *old* compiled schema, so new fields get silently stripped on write until the process restarts. If a field you just added reads back as `null`, that's why — not your code.
 

@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from '@/store/store';
 import { fetchHabits, fetchLogs, restoreTimer } from '@/store/habitSlice';
 import { fetchTasks } from '@/store/taskSlice';
+import { fetchCategories, fetchNotes } from '@/store/noteSlice';
 import { readStoredTimer } from '@/store/timerPersistence';
 
 export default function StoreProvider({
@@ -26,6 +27,10 @@ export default function StoreProvider({
     store.dispatch(fetchHabits());
     store.dispatch(fetchLogs());
     store.dispatch(fetchTasks());
+    // Metadata only — note bodies are fetched when one is opened, so this
+    // stays cheap even with a shelf full of long imports.
+    store.dispatch(fetchNotes());
+    store.dispatch(fetchCategories());
   }, []);
 
   return <Provider store={store}>{children}</Provider>;

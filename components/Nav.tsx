@@ -8,8 +8,12 @@ import {
   BookText,
   KanbanSquare,
   ListChecks,
+  LogIn,
+  LogOut,
   NotebookPen,
+  UserPlus,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -20,7 +24,20 @@ const LINKS = [
   { href: "/review", label: "Review", Icon: NotebookPen },
 ];
 
-export function Nav() {
+/**
+ * Signed out, the two auth destinations take the place of the sign-out
+ * control. They're kept rather than dropped so that exempting a route from the
+ * middleware matcher later — a public landing page, say — leaves a working way
+ * in; as things stand middleware means a signed-out visitor never reaches a
+ * page that renders this nav. Unconditional links would also be seven items on
+ * a 360px viewport.
+ */
+const AUTH_LINKS = [
+  { href: "/login", label: "Login", Icon: LogIn },
+  { href: "/register", label: "Register", Icon: UserPlus },
+];
+
+export function Nav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -63,6 +80,34 @@ export function Nav() {
               </Link>
             );
           })}
+        </div>
+
+        {/* Pushed right, away from the destinations: leaving isn't one of
+            them. */}
+        <div className="ml-auto flex shrink-0 items-center gap-1">
+          {signedIn ? (
+            <button
+              type="button"
+              onClick={() => signOut({ redirectTo: "/login" })}
+              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:gap-2 sm:px-3"
+            >
+              <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">Sign out</span>
+              <span className="sr-only sm:hidden">Sign out</span>
+            </button>
+          ) : (
+            AUTH_LINKS.map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:gap-2 sm:px-3"
+              >
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="hidden sm:inline">{label}</span>
+                <span className="sr-only sm:hidden">{label}</span>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </nav>

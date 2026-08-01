@@ -96,7 +96,7 @@ export function NoteList() {
             {selected === null
               ? "All notes"
               : selected === UNFILED
-                ? "Unfiled"
+                ? "No folder"
                 : breadcrumb.map((c) => c.name).join(" / ")}
           </span>
           <ChevronRight

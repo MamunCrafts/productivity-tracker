@@ -1,5 +1,16 @@
 export * from "./notes";
 
+/**
+ * The single account. `passwordHash` is deliberately absent — it never leaves
+ * the server, and no client type should imply it might.
+ */
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
 export type HabitStatus = "Active" | "Paused" | "Deleted";
 
 export interface Habit {

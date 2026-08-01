@@ -5,6 +5,8 @@ import StoreProvider from "./StoreProvider";
 import { Nav } from "@/components/Nav";
 import { FocusTimer } from "@/components/FocusTimer";
 import { Colophon } from "@/components/Colophon";
+import { ChromeOnly } from "@/components/ChromeOnly";
+import { auth } from "@/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,11 +36,16 @@ export const metadata: Metadata = {
     "A simple app to track and visualize your productivity over time.",
 };
 
-export default function RootLayout({
+// Async because the nav's sign-out control depends on the session, and reading
+// it here means it is correct in the server-rendered HTML instead of appearing
+// after hydration.
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en">
       <body
@@ -54,15 +61,23 @@ export default function RootLayout({
         {/* Store lives at the layout so habits/logs are fetched once and shared
             across client-side navigation between Analytics and Habits. */}
         <StoreProvider>
-          <div className="relative z-10">
-            <Nav />
-          </div>
+          <ChromeOnly>
+            <div className="relative z-10">
+              <Nav signedIn={Boolean(session?.user)} />
+            </div>
+          </ChromeOnly>
+          {/* No client-side gate: middleware turns signed-out requests away
+              before this renders at all. */}
           <main className="flex-1 relative z-10">{children}</main>
           {/* Global so a running session stays reachable across both routes. */}
-          <FocusTimer />
+          <ChromeOnly>
+            <FocusTimer />
+          </ChromeOnly>
         </StoreProvider>
 
-        <Colophon />
+        <ChromeOnly>
+          <Colophon />
+        </ChromeOnly>
       </body>
     </html>
   );

@@ -22,7 +22,7 @@ import {
 import { buildTree, countsBySubtree, type CategoryNode } from "@/lib/tree";
 import { cn } from "@/lib/utils";
 
-/** Notes with no folder. A sentinel rather than `null`, which means "all". */
+/** Notes in no folder. A sentinel rather than `null`, which means "all". */
 export const UNFILED = "__unfiled__";
 
 export type Selection = string | null;
@@ -55,7 +55,7 @@ export function CategoryTree({
 
   const tree = buildTree(categories);
   const counts = countsBySubtree(categories, notes);
-  const unfiled = notes.filter((n) => !n.categoryId).length;
+  const looseCount = notes.filter((n) => !n.categoryId).length;
 
   function toggle(id: string) {
     setExpanded((prev) => {
@@ -116,14 +116,14 @@ export function CategoryTree({
           />
         ))}
 
-        {/* Only worth a row when something is actually unfiled — an empty
+        {/* Only worth a row when something is actually loose — an empty
             inbox is a permanent reminder of nothing. */}
-        {unfiled > 0 && (
+        {looseCount > 0 && (
           <li>
             <RootRow
               icon={<Inbox className="h-3.5 w-3.5" aria-hidden />}
-              label="Unfiled"
-              count={unfiled}
+              label="No folder"
+              count={looseCount}
               active={selected === UNFILED}
               onClick={() => onSelect(UNFILED)}
             />

@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { FOCUS_RATINGS } from "@/lib/analytics";
 
 type Row = { hours: number; label: string; rating: number; sessions: number };
@@ -20,6 +20,8 @@ type Row = { hours: number; label: string; rating: number; sessions: number };
  * hours can't: whether your long sessions are actually your good ones.
  */
 export function FocusQualityChart({ data }: { data: Row[] }) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   const rated = data.reduce((sum, d) => sum + d.sessions, 0);
 
   return (
@@ -43,16 +45,16 @@ export function FocusQualityChart({ data }: { data: Row[] }) {
         <div className="h-[240px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -12 }} barCategoryGap={16}>
-              <CartesianGrid stroke={VIZ.grid} strokeWidth={1} vertical={false} />
+              <CartesianGrid stroke={viz.grid} strokeWidth={1} vertical={false} />
               <XAxis
                 dataKey="label"
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -75,7 +77,7 @@ export function FocusQualityChart({ data }: { data: Row[] }) {
                         {
                           name: nearest ? nearest.label.toLowerCase() : "average focus",
                           value: row.rating.toFixed(1),
-                          color: VIZ.accent,
+                          color: viz.accent,
                         },
                       ]}
                     />
@@ -86,7 +88,7 @@ export function FocusQualityChart({ data }: { data: Row[] }) {
                 dataKey="rating"
                 radius={[4, 4, 0, 0]}
                 maxBarSize={24}
-                fill={VIZ.accent}
+                fill={viz.accent}
                 isAnimationActive={false}
               />
             </BarChart>

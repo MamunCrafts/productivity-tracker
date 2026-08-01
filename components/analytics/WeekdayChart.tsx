@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { formatHours } from "@/lib/analytics";
 
 type Row = { label: string; hours: number; sessions: number };
@@ -22,6 +22,8 @@ type Row = { label: string; hours: number; sessions: number };
  * emphasis. The rest recede to a de-emphasis step of the same hue.
  */
 export function WeekdayChart({ data }: { data: Row[] }) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   const total = data.reduce((sum, d) => sum + d.hours, 0);
   const peak = Math.max(...data.map((d) => d.hours));
   const best = data.find((d) => d.hours === peak && d.hours > 0);
@@ -51,16 +53,16 @@ export function WeekdayChart({ data }: { data: Row[] }) {
         <div className="h-[240px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -12 }} barCategoryGap={16}>
-              <CartesianGrid stroke={VIZ.grid} strokeWidth={1} vertical={false} />
+              <CartesianGrid stroke={viz.grid} strokeWidth={1} vertical={false} />
               <XAxis
                 dataKey="label"
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -79,7 +81,7 @@ export function WeekdayChart({ data }: { data: Row[] }) {
                         {
                           name: `across ${row.sessions} session${row.sessions === 1 ? "" : "s"}`,
                           value: formatHours(row.hours),
-                          color: VIZ.accent,
+                          color: viz.accent,
                         },
                       ]}
                     />
@@ -90,7 +92,7 @@ export function WeekdayChart({ data }: { data: Row[] }) {
                 {data.map((row) => (
                   <Cell
                     key={row.label}
-                    fill={VIZ.accent}
+                    fill={viz.accent}
                     fillOpacity={best && row.label === best.label ? 1 : 0.35}
                   />
                 ))}

@@ -104,16 +104,25 @@ All five `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the t
 - `hoursByHabit` folds logs whose habit was soft-deleted into a single **"Archived habits"** row. Without it those hours count toward page totals but disappear from the breakdown.
 - The range filter on `/` scopes every chart *except* goal progress, which is deliberately all-time (the goals are lifetime targets) and is labelled as such.
 
-`lib/viz.ts` holds the chart chrome and the sequential ramp, with the validation results in a comment. Rules that the charts already follow and new ones should too:
+`lib/viz.ts` holds the chart chrome and the sequential ramp — **one `VizPalette` per theme**, with the validation results in a comment. Recharts writes colours into SVG paint attributes, so charts can't inherit the CSS tokens; they read `useViz()` instead, which swaps the whole object. Note the heat ramp **reverses direction** between themes: on a dark surface more hours read lighter, on paper they read darker. Rules that the charts already follow and new ones should too:
 
 - **Habit colors are entity identity**, chosen by the user and persisted — a habit wears the same hue on its card, in its chart, and in the breakdown. Never assign chart color by rank or value.
 - Those eight picker hues clear CVD separation and 3:1 contrast on the dark surface but sit above the ideal dark lightness band, so use them on **thin marks** (≤24px bars, 2px lines), never large saturated fills, and always pair them with a non-color identity channel (axis label, legend, or the table view).
+- **They were never validated for the light surface, and one of them fails on it**: the yellow swatch (`#eab308`) lands about 1.9:1 on paper, so a 3px habit rail in it is close to invisible in the light theme. They are left as they are because a habit's colour is user-chosen identity and is already persisted on existing rows — changing the swatch would only affect new habits anyway. Fix it by swapping that one picker option for a darker gold, not by adjusting colours per theme.
 - Single-series charts use `VIZ.accent`; magnitude grids use `HEAT_RAMP` (one hue, light→dark). No rainbows, no dual-axis charts.
 - Every chart is wrapped in `components/analytics/ChartCard.tsx`, which ships a **table-view twin** — a value must never be reachable only by hovering.
 
 ## Design system
 
-Dark-only, and built around long study sessions. The whole theme lives in `app/globals.css` — **use the semantic tokens, never raw `zinc-*`/`black`/`white` utilities.** A stray `bg-zinc-900` will not match the surfaces around it.
+Two themes, both built around long study sessions. The whole theme lives in `app/globals.css` — **use the semantic tokens, never raw `zinc-*`/`black`/`white` utilities.** A stray `bg-zinc-900` will not match the surfaces around it, and it will not follow the theme.
+
+**How the theme switches.** `:root` declares the dark palette, `:root[data-theme="light"]` overrides the same token names, and every utility resolves `hsl(var(--token))` at the use site — so overriding the variables is the entire mechanism. Nothing needs a `dark:` variant.
+
+- `lib/theme.ts` owns the state. `THEME_SCRIPT` runs **blocking, in `<head>`, before first paint** — that's what stops a frame of the wrong theme on load, and why `<html>` carries `suppressHydrationWarning`. The document element is the source of truth; `localStorage` only persists the choice, and the OS preference is the default.
+- `components/theme/useTheme.ts` reads it with `useSyncExternalStore` (server snapshot `"dark"`, matching plain `:root`). `ThemeToggle` decides which glyph to show **in CSS** via `.theme-dark-only` / `.theme-light-only`, so it can't flash the wrong icon before hydration.
+- Anything that assumed a dark backdrop is now a theme-scoped class rather than a literal: `.lamp-glow` (the desk-lamp wash) and `.elev-lift` (dragged card, dialog — pure black at 40% reads as a bruise on paper). `color-scheme` is declared per theme on `:root`, so don't re-add `[color-scheme:dark]` to inputs.
+
+Both palettes keep the same two rules, and the light one is measured to sit alongside the dark rather than under it — ink 13.66:1 vs 13.41:1, amber 5.37:1, pale text on the amber button 5.28:1. **Amber inverts role between them**: a light fill carrying dark text on the dark surface, a dark fill carrying pale text on paper, which is why `--primary-foreground` flips too.
 
 | Token | Role |
 |---|---|

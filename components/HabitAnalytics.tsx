@@ -14,7 +14,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { format, parseISO, subDays } from "date-fns";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { dayKey, formatHours, habitPace, toHours } from "@/lib/analytics";
 import { VizTooltip } from "./analytics/ChartCard";
 import { SessionList } from "./SessionList";
@@ -36,6 +36,8 @@ function Figure({ label, value, hint }: { label: string; value: string; hint: st
 }
 
 export function HabitAnalytics({ habit }: AnalyticsProps) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   const logs = useAppSelector((state) => state.habit.logs);
 
   const { data, totalHours, daysHit } = useMemo(() => {
@@ -114,10 +116,10 @@ export function HabitAnalytics({ habit }: AnalyticsProps) {
           <div className="h-[260px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -14 }}>
-                <CartesianGrid stroke={VIZ.grid} strokeWidth={1} vertical={false} />
+                <CartesianGrid stroke={viz.grid} strokeWidth={1} vertical={false} />
                 <XAxis
                   dataKey="label"
-                  stroke={VIZ.muted}
+                  stroke={viz.muted}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
@@ -125,7 +127,7 @@ export function HabitAnalytics({ habit }: AnalyticsProps) {
                   interval="preserveStartEnd"
                 />
                 <YAxis
-                  stroke={VIZ.muted}
+                  stroke={viz.muted}
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}

@@ -55,6 +55,52 @@
   --input: var(--line-2);
   --ring: var(--amber);
   --radius: 0.625rem;
+
+  color-scheme: dark;
+}
+
+/*
+  "Reading room by day" — the same room with the curtains open, not an
+  inversion. Every hue stays in the warm 28–42° band, so the two themes read as
+  one place at different hours, and the two rules the dark palette exists to
+  enforce carry over unchanged:
+
+  1. No pure white and no pure black. The page is warm paper (#F5F1EA), cards
+     are a shade lighter, and primary text is a warm near-black rather than #000.
+  2. Amber is still the only accent — but it inverts role. On a dark surface it
+     was a light fill carrying dark text; on paper it has to be a dark fill
+     carrying pale text, so --primary-foreground flips with it.
+
+  Measured against the card surface (#FEFDFB):
+    ink 13.66:1   ink-2 5.86:1   ink-3 3.65:1   amber 5.37:1
+    pale text on the amber button 5.28:1 (AA)
+
+  Deliberately close to the dark theme's own figures (13.41 / 6.33 / 3.01 /
+  7.92) so that neither mode is the harsher one to sit with.
+*/
+:root[data-theme="light"] {
+  /* Surfaces, light → lighter. Note the inversion of intent: "raised" means
+     more contrast against the page, so surface-2 goes *darker* here. */
+  --base: 38 36% 94%;
+  --surface: 42 55% 99%;
+  --surface-2: 36 26% 90%;
+  --line: 36 20% 86%;
+  --line-2: 34 17% 76%;
+
+  /* Ink, strong → faint */
+  --ink: 28 20% 17%;
+  --ink-2: 32 13% 38%;
+  --ink-3: 32 10% 51%;
+
+  --amber: 30 74% 35%;
+  --amber-deep: 28 72% 27%;
+
+  --danger: 6 62% 40%;
+
+  /* Flipped: amber is now a dark fill, so what sits on it must be pale. */
+  --primary-foreground: 42 55% 98%;
+
+  color-scheme: light;
 }
 
 @theme inline {
@@ -183,4 +229,30 @@ input[type="button"] {
   outline: 2px solid hsl(var(--amber));
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* Shown in one theme only. Used by the theme toggle so its glyph is right in
+   the first painted frame, with no React state to hydrate first. */
+:root[data-theme="dark"] .theme-light-only,
+:root[data-theme="light"] .theme-dark-only {
+  display: none;
+}
+
+/* The desk lamp. Stronger on paper, where a 5.5% wash would simply vanish. */
+.lamp-glow {
+  background-color: hsl(var(--amber) / 0.055);
+}
+
+:root[data-theme="light"] .lamp-glow {
+  background-color: hsl(var(--amber) / 0.07);
+}
+
+/* Lifted off the page — a dragged card, a dialog. Pure black at 40% reads as a
+   bruise on paper, so light gets a shallower, warmer shadow instead. */
+.elev-lift {
+  box-shadow: 0 20px 40px -12px hsl(30 30% 4% / 0.45);
+}
+
+:root[data-theme="light"] .elev-lift {
+  box-shadow: 0 18px 36px -14px hsl(30 25% 25% / 0.18);
 }

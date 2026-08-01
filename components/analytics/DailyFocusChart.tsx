@@ -11,12 +11,14 @@ import {
 } from "recharts";
 import { format, parseISO } from "date-fns";
 import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { formatHours } from "@/lib/analytics";
 
 type Point = { date: string; label: string; hours: number };
 
 export function DailyFocusChart({ data }: { data: Point[] }) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   const active = data.filter((d) => d.hours > 0);
 
   return (
@@ -45,14 +47,14 @@ export function DailyFocusChart({ data }: { data: Point[] }) {
             <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -12 }}>
               <defs>
                 <linearGradient id="dailyFocusFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={VIZ.accent} stopOpacity={0.18} />
-                  <stop offset="100%" stopColor={VIZ.accent} stopOpacity={0.02} />
+                  <stop offset="0%" stopColor={viz.accent} stopOpacity={0.18} />
+                  <stop offset="100%" stopColor={viz.accent} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke={VIZ.grid} strokeWidth={1} vertical={false} />
+              <CartesianGrid stroke={viz.grid} strokeWidth={1} vertical={false} />
               <XAxis
                 dataKey="label"
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -60,7 +62,7 @@ export function DailyFocusChart({ data }: { data: Point[] }) {
                 interval="preserveStartEnd"
               />
               <YAxis
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -68,7 +70,7 @@ export function DailyFocusChart({ data }: { data: Point[] }) {
                 tickFormatter={(v) => `${v}h`}
               />
               <Tooltip
-                cursor={{ stroke: VIZ.axis, strokeWidth: 1 }}
+                cursor={{ stroke: viz.axis, strokeWidth: 1 }}
                 content={({ active: on, payload }) => {
                   if (!on || !payload?.length) return null;
                   const point = payload[0].payload as Point;
@@ -79,7 +81,7 @@ export function DailyFocusChart({ data }: { data: Point[] }) {
                         {
                           name: "focused",
                           value: formatHours(point.hours),
-                          color: VIZ.accent,
+                          color: viz.accent,
                         },
                       ]}
                     />
@@ -89,15 +91,15 @@ export function DailyFocusChart({ data }: { data: Point[] }) {
               <Area
                 type="monotone"
                 dataKey="hours"
-                stroke={VIZ.accent}
+                stroke={viz.accent}
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 fill="url(#dailyFocusFill)"
                 activeDot={{
                   r: 4,
-                  fill: VIZ.accent,
-                  stroke: VIZ.surface,
+                  fill: viz.accent,
+                  stroke: viz.surface,
                   strokeWidth: 2,
                 }}
               />

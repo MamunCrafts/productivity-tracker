@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ChartCard, DataTable, EmptyPlot } from "./ChartCard";
-import { HEAT_EMPTY, HEAT_RAMP, heatColor } from "@/lib/viz";
+import { heatColor } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { formatHours, HeatCell } from "@/lib/analytics";
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
 
 export function ConsistencyHeatmap({ weeks }: { weeks: HeatCell[][] }) {
+  // The ramp reverses direction between themes — on paper, more reads darker.
+  const viz = useViz();
   const [hovered, setHovered] = useState<HeatCell | null>(null);
 
   const cells = weeks.flat().filter((c) => c.inRange);
@@ -95,7 +98,7 @@ export function ConsistencyHeatmap({ weeks }: { weeks: HeatCell[][] }) {
                         onFocus={() => setHovered(cell)}
                         onBlur={() => setHovered(null)}
                         className="h-[14px] w-[14px] rounded-[3px] transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-ink-2"
-                        style={{ backgroundColor: heatColor(cell.hours, max) }}
+                        style={{ backgroundColor: heatColor(cell.hours, max, viz) }}
                       />
                     );
                   })}
@@ -108,9 +111,9 @@ export function ConsistencyHeatmap({ weeks }: { weeks: HeatCell[][] }) {
             <span>Less</span>
             <span
               className="h-[10px] w-[10px] rounded-[2px]"
-              style={{ backgroundColor: HEAT_EMPTY }}
+              style={{ backgroundColor: viz.heatEmpty }}
             />
-            {HEAT_RAMP.map((step) => (
+            {viz.heat.map((step) => (
               <span
                 key={step}
                 className="h-[10px] w-[10px] rounded-[2px]"

@@ -201,7 +201,7 @@ export function TaskForm({
                 id="task-habit"
                 value={form.habitId}
                 onChange={(e) => set("habitId", e.target.value)}
-                className="h-11 w-full rounded-md border border-line-2 bg-base px-3 text-base text-ink transition-colors hover:border-line-2/80 focus-visible:border-amber focus-visible:outline-none [color-scheme:dark]"
+                className="h-11 w-full rounded-md border border-line-2 bg-base px-3 text-base text-ink transition-colors hover:border-line-2/80 focus-visible:border-amber focus-visible:outline-none"
               >
                 <option value="">No habit</option>
                 {habits.map((habit) => (

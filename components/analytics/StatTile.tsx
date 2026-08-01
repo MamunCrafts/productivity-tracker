@@ -3,10 +3,12 @@
 import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 
 /** 12-point trend, de-emphasised, with the latest point in the accent hue. */
 export function Sparkline({ points }: { points: number[] }) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   if (points.length < 2) return null;
   const width = 120;
   const height = 28;
@@ -25,8 +27,8 @@ export function Sparkline({ points }: { points: number[] }) {
       aria-hidden
       focusable="false"
     >
-      <path d={path} fill="none" stroke={VIZ.axis} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastX - 2} cy={lastY} r={3} fill={VIZ.accent} stroke={VIZ.surface} strokeWidth={2} />
+      <path d={path} fill="none" stroke={viz.axis} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastX - 2} cy={lastY} r={3} fill={viz.accent} stroke={viz.surface} strokeWidth={2} />
     </svg>
   );
 }

@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
-import { VIZ } from "@/lib/viz";
+import { useViz } from "@/components/theme/useViz";
 import { formatHours, HabitTotal } from "@/lib/analytics";
 
 // Kept short: the label gutter plus the value gutter is fixed, so on a phone a
@@ -20,6 +20,8 @@ const truncate = (value: string, max = 14) =>
   value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
 export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
+  // Literal colours for Recharts, swapped with the theme.
+  const viz = useViz();
   const withTime = data.filter((d) => d.hours > 0);
   // Rows are one series across nominal categories; the y-axis label carries
   // identity. Color is the habit's own persisted hue so a habit looks the same
@@ -65,7 +67,7 @@ export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
               <YAxis
                 type="category"
                 dataKey="tick"
-                stroke={VIZ.muted}
+                stroke={viz.muted}
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
@@ -98,7 +100,7 @@ export function HabitBreakdownChart({ data }: { data: HabitTotal[] }) {
                   dataKey="hours"
                   position="right"
                   offset={8}
-                  fill={VIZ.textSecondary}
+                  fill={viz.textSecondary}
                   fontSize={12}
                   formatter={(value: unknown) => formatHours(Number(value) || 0)}
                 />

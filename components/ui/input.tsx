@@ -13,8 +13,6 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           "placeholder:text-ink-3",
           "hover:border-line-2/80 focus-visible:border-amber focus-visible:outline-none",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          // Keeps the native date/number widgets legible on a dark field.
-          "[color-scheme:dark]",
           className
         )}
         ref={ref}

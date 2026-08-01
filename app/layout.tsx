@@ -7,6 +7,7 @@ import { FocusTimer } from "@/components/FocusTimer";
 import { Colophon } from "@/components/Colophon";
 import { ChromeOnly } from "@/components/ChromeOnly";
 import { auth } from "@/auth";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +48,14 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="en">
+    // suppressHydrationWarning because the script below stamps data-theme onto
+    // this element before React ever sees it, which is the whole point of it.
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Blocking on purpose, and before any markup: this is what stops a
+            frame of the wrong theme on every load. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} antialiased min-h-screen flex flex-col bg-base text-ink selection:bg-amber/25`}
@@ -55,7 +63,7 @@ export default async function RootLayout({
         {/* A single warm pool of light from above, like a desk lamp — replaces
             the two cool blobs, which put high-energy blue on the page edges. */}
         <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-[30%] left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full bg-amber/[0.055] blur-[130px]" />
+          <div className="lamp-glow absolute -top-[30%] left-1/2 h-[560px] w-[900px] -translate-x-1/2 rounded-full blur-[130px]" />
         </div>
 
         {/* Store lives at the layout so habits/logs are fetched once and shared

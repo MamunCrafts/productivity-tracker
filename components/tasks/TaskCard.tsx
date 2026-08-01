@@ -65,7 +65,7 @@ export function TaskCard({ task, overlay = false }: TaskCardProps) {
         !overlay && "cursor-grab hover:border-line-2 active:cursor-grabbing",
         // The original stays as a ghost so the column keeps its shape.
         isDragging && "opacity-40",
-        overlay && "cursor-grabbing border-line-2 shadow-2xl shadow-black/40",
+        overlay && "cursor-grabbing border-line-2 elev-lift",
         done && "opacity-70 hover:opacity-100"
       )}
     >

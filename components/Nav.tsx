@@ -14,6 +14,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -85,6 +86,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
         {/* Pushed right, away from the destinations: leaving isn't one of
             them. */}
         <div className="ml-auto flex shrink-0 items-center gap-1">
+          <ThemeToggle />
           {signedIn ? (
             <button
               type="button"

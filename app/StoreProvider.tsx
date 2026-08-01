@@ -4,6 +4,7 @@ import { useRef, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
 import { fetchHabits, fetchLogs, restoreTimer } from '@/store/habitSlice';
+import { fetchTasks } from '@/store/taskSlice';
 import { readStoredTimer } from '@/store/timerPersistence';
 
 export default function StoreProvider({
@@ -24,6 +25,7 @@ export default function StoreProvider({
 
     store.dispatch(fetchHabits());
     store.dispatch(fetchLogs());
+    store.dispatch(fetchTasks());
   }, []);
 
   return <Provider store={store}>{children}</Provider>;

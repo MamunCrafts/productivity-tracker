@@ -2,12 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BarChart3, ListChecks, NotebookPen } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  KanbanSquare,
+  ListChecks,
+  NotebookPen,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Analytics", Icon: BarChart3 },
   { href: "/habits", label: "Habits", Icon: ListChecks },
+  { href: "/tasks", label: "Board", Icon: KanbanSquare },
   { href: "/review", label: "Review", Icon: NotebookPen },
 ];
 
@@ -42,8 +49,12 @@ export function Nav() {
                     : "text-ink-2 hover:bg-surface hover:text-ink"
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                {/* Four destinations don't fit a 360px phone. Only the one
+                    you're on spells itself out; the rest ride on their icon
+                    until there's room. */}
+                <span className={cn(!active && "hidden sm:inline")}>{label}</span>
+                {!active && <span className="sr-only sm:hidden">{label}</span>}
               </Link>
             );
           })}

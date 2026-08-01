@@ -15,7 +15,7 @@ yarn lint        # eslint (flat config, eslint-config-next core-web-vitals + typ
 npx tsc --noEmit # fastest full type-check on its own
 ```
 
-`yarn lint` currently exits 1 on **4 pre-existing errors** — `FocusTimer.tsx:25` (setState in effect), `ui/input.tsx:4` (empty interface), `lib/db.ts:14,17` (two `any`s). A non-zero lint exit is therefore not automatically your change; diff the file list before assuming.
+`yarn lint` exits 0 as of 2026-08-01 — the four errors this file used to list (`FocusTimer.tsx` setState-in-effect, `ui/input.tsx` empty interface, two `any`s in `lib/db.ts`) are gone. Treat a non-zero lint exit as your change.
 
 There is no test framework, test script, or test file in this repo. Don't invent one when asked to "run the tests" — say so.
 
@@ -27,24 +27,34 @@ The README describes "Tasks"; the code has no such concept. The two real entitie
 
 - **Habit** — a long-running goal with `totalHours`, `perDayHours`, `totalDays`, `weekFrequency`, a hex `color`, and `status: "Active" | "Deleted"`. `pinnedAt` is a timestamp, not a boolean, so `sortPinnedFirst` (in `store/habitSlice.ts`) can put the *most recently* pinned habit at the top; pinning reorders within a `/habits` section, never across them.
 - **TimeLog** — one chunk of focused time against a habit: `habitId`, `durationSeconds`, and `date` (`YYYY-MM-DD`, used as the grouping key for analytics).
+- **Task** — a Kanban card. `status: "Todo" | "Doing" | "Done"` *is* the column (there are no user-defined columns), `order` is a **fractional** position within it, and `habitId` is **nullable** — a task may stand alone or borrow a habit's colour and name. Nothing in analytics derives from tasks, which is why they hard-delete.
 
 Both use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.
 
 ## Architecture
 
-**Three routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them.
+**Four routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/tasks` is the Kanban board (`app/tasks/page.tsx`), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them — below `sm` only the current destination shows its label, because four labels overflow a 360px viewport.
 
-**Data flow is entirely client-side.** `app/layout.tsx` wraps both routes in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` to pull the *full* habit and log collections into Redux. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no per-habit, filtered, or paginated endpoint. Components read from the store only.
+**Data flow is entirely client-side.** `app/layout.tsx` wraps every route in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` + `fetchTasks()` to pull those *full* collections into Redux. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no per-habit, filtered, or paginated endpoint. Components read from the store only.
 
 Everything derived — total hours, progress percentage, every chart on `/` — is computed in the browser by filtering `state.habit.logs`. There is no server-side aggregation. This is fine at current scale; if log volume grows, that's where the pressure lands.
 
-**Single Redux slice** (`store/habitSlice.ts`, mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
+**The task board is its own module.** `store/taskSlice.ts` (mounted as `task`), `lib/board.ts`, `components/tasks/`, `models/Task.ts`, `app/api/tasks/`. It depends on `habit` only to look up a linked habit's colour and title; nothing in `habitSlice` or `lib/analytics.ts` knows tasks exist, and it should stay that way.
+
+- **Ordering is fractional, not sequential.** A drop takes the midpoint between its two new neighbours (`orderBetween` in `lib/board.ts`), so one card is written instead of renumbering a column. Don't "fix" this into an index — that turns every drag into N writes.
+- **A drag is applied locally before it is saved.** `moveTaskAsync` dispatches `applyMove`, PATCHes, and re-dispatches `applyMove` with the old values if the write fails. A card that snaps back mid-request reads as a failed drag, so don't drop the optimistic step.
+- **dnd-kit sensors are tuned for touch**: mouse activates after 6px, touch after a 200ms *hold*. That hold is why cards must **not** carry `touch-action: none` — a plain swipe over a card has to scroll the board.
+- Cross-column hovering doesn't reshuffle the target column live; the `DragOverlay` follows the cursor and the card lands correctly on drop. That's a deliberate trade for a fraction of the state juggling.
+
+**Two Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
 
 **The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `FocusTimer.tsx` renders from the layout so it survives route changes.
 
 `ManualLogForm` writes a `TimeLog` with `endTime: null`, so **`startTime` is only trustworthy when `endTime !== null`** — don't build time-of-day analysis on it without that filter. That same null is what distinguishes "timed" from "manual" in the session list and the export.
 
-**Delete semantics differ by entity, deliberately.** `DELETE /api/habits/[id]` is soft (`status: "Deleted"`), and the habit's logs are left in place so its hours survive in analytics. `DELETE /api/logs/[id]` is a hard delete — a mistyped session is bad data, not history, and leaving it would skew every total.
+**Delete semantics differ by entity, deliberately.** `DELETE /api/habits/[id]` is soft (`status: "Deleted"`), and the habit's logs are left in place so its hours survive in analytics. `DELETE /api/logs/[id]` and `DELETE /api/tasks/[id]` are hard deletes — a mistyped session is bad data, not history, and a deleted task feeds no total at all.
+
+Note that deleting a habit leaves any task pointing at it with a dangling `habitId`; `TaskCard` renders no habit chip in that case rather than breaking.
 
 **API surface** (`app/api/`):
 
@@ -54,9 +64,11 @@ Everything derived — total hours, progress percentage, every chart on `/` — 
 | `/api/habits/[id]` | `PATCH`, `DELETE` (soft) |
 | `/api/logs` | `GET` (all), `POST` |
 | `/api/logs/[id]` | `PATCH`, `DELETE` (hard) |
+| `/api/tasks` | `GET` (all, sorted by `order`), `POST` |
+| `/api/tasks/[id]` | `PATCH`, `DELETE` (hard) |
 | `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |
 
-Both `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and both map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+All three `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
 
 **Changing a Mongoose schema needs a dev-server restart.** The `mongoose.models.X || mongoose.model(...)` hot-reload guard keeps the *old* compiled schema, so new fields get silently stripped on write until the process restarts. If a field you just added reads back as `null`, that's why — not your code.
 

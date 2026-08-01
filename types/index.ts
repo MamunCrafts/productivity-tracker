@@ -52,3 +52,39 @@ export type HabitPatch = Partial<
 export type TimeLogPatch = Partial<
   Pick<TimeLog, "durationSeconds" | "date" | "note" | "focusRating">
 >;
+
+/** The three Kanban columns. The board has no user-defined columns by design. */
+export type TaskStatus = "Todo" | "Doing" | "Done";
+
+export const TASK_STATUSES: TaskStatus[] = ["Todo", "Doing", "Done"];
+
+export interface Task {
+  id: string;
+  title: string;
+  notes: string;
+  /** Optional link to a habit — gives the card its colour and its context. */
+  habitId: string | null;
+  status: TaskStatus;
+  /**
+   * Position within the column, ascending. Fractional on purpose: a drop
+   * lands halfway between its neighbours, so only the moved card is written
+   * instead of renumbering the whole column.
+   */
+  order: number;
+  dueDate: string | null; // YYYY-MM-DD
+  createdAt: string; // ISO Date string
+  completedAt: string | null; // ISO Date string, set on the move into Done
+}
+
+export type TaskPatch = Partial<
+  Pick<
+    Task,
+    | "title"
+    | "notes"
+    | "habitId"
+    | "status"
+    | "order"
+    | "dueDate"
+    | "completedAt"
+  >
+>;

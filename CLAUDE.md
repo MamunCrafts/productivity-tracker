@@ -41,24 +41,15 @@ All of them use a client-generated `crypto.randomUUID()` string in an applicatio
 
 `/login` and `/register` sit outside that set and outside the app shell: `components/ChromeOnly.tsx` returns null for them, so nav, docked timer and colophon don't render. It gates on the **route only**, never on signed-in state — the server can't read `localStorage`, so gating on that would strip the nav from every page's server-rendered HTML and let it pop in after hydration on every load.
 
-**Auth is a placeholder, and the API is fully public.** There is no user model, no password check, no server session and no cookie. `lib/session.ts` holds a boolean in `localStorage`; the sign-in screens accept any input and set it; `components/auth/SessionGate.tsx` redirects to `/login` when it's absent. Anyone can flip it from devtools, and **no API route checks anything** — so don't describe this as authentication or build authorization on top of it. Making it real means a credential check plus an httpOnly cookie verified in middleware and in the routes, at which point the redirect moves to middleware and happens before any markup is sent.
+**Auth is real, and it is a single-account gate.** Auth.js v5 (`next-auth@5` beta) with a Credentials provider and a **JWT session** — no database adapter, because every adapter brings its own collections and id shape, which would fight the application-level `id` convention every model here uses.
 
-- `components/auth/useSession.ts` is the one reader (`useSyncExternalStore`, not `useState` + an effect — localStorage is external mutable state, and this keeps the gate clear of the set-state-in-an-effect rule). Its server snapshot is always `false`.
-- `SessionGate` renders children throughout rather than withholding them until the flag is known, for the same server-snapshot reason: withholding costs a blank frame on every load to tidy up a redirect that happens once.
-- `Nav` swaps the Login/Register links for Sign out once the flag reads true. Unconditional auth links would be seven items at 360px, and dead weight besides — a signed-out visitor is redirected off every route that shows the nav.
-
-**Data flow is entirely client-side.** `app/layout.tsx` wraps every route in `app/StoreProvider.tsx`, which on mount dispatches `fetchHabits()` + `fetchLogs()` + `fetchTasks()` + `fetchNotes()`. Keeping the provider at the layout means one fetch shared across client-side navigation — don't push it back down into a page. Nothing is fetched on the server, and there is no filtered or paginated endpoint. Components read from the store only.
-
-Habits, logs and tasks are pulled in *whole*. **Notes are the one exception**, and deliberately: `fetchNotes()` gets metadata only (`GET /api/notes` projects `-content -blocks`), because a shelf of long imports is megabytes that would otherwise be refetched on every route. A note's body arrives from `GET /api/notes/[id]` when it is opened and is cached in `state.note.bodies`. This is the only per-entity GET in the app — don't copy it for anything whose rows are small.
-
-Everything derived — total hours, progress percentage, every chart on `/` — is computed in the browser by filtering `state.habit.logs`. There is no server-side aggregation. This is fine at current scale; if log volume grows, that's where the pressure lands.
-
-**The task board is its own module.** `store/taskSlice.ts` (mounted as `task`), `lib/board.ts`, `components/tasks/`, `models/Task.ts`, `app/api/tasks/`. It depends on `habit` only to look up a linked habit's colour and title; nothing in `habitSlice` or `lib/analytics.ts` knows tasks exist, and it should stay that way.
-
-- **Ordering is fractional, not sequential.** A drop takes the midpoint between its two new neighbours (`orderBetween` in `lib/board.ts`), so one card is written instead of renumbering a column. Don't "fix" this into an index — that turns every drag into N writes.
-- **A drag is applied locally before it is saved.** `moveTaskAsync` dispatches `applyMove`, PATCHes, and re-dispatches `applyMove` with the old values if the write fails. A card that snaps back mid-request reads as a failed drag, so don't drop the optimistic step.
-- **dnd-kit sensors are tuned for touch**: mouse activates after 6px, touch after a 200ms *hold*. That hold is why cards must **not** carry `touch-action: none` — a plain swipe over a card has to scroll the board.
-- Cross-column hovering doesn't reshuffle the target column live; the `DragOverlay` follows the cursor and the card lands correctly on drop. That's a deliberate trade for a fraction of the state juggling.
+- **The config is split in two, and that split is load-bearing.** `auth.config.ts` is Edge-safe and holds the `authorized` callback; `auth.ts` adds the Credentials provider, which needs mongoose and bcrypt. `middleware.ts` may only import the former — the Edge runtime has neither of those packages.
+- **Route protection lives entirely in middleware**, which is why no API route repeats the check. The matcher covers everything except `api/auth` (Auth.js's endpoints *and* `/api/auth/register`, which must work while signed out) and static assets. A signed-out request never reaches a handler or gets any markup.
+- **There is exactly one account.** `POST /api/auth/register` returns 409 once a user exists. Nothing else in the schema is scoped to a user — no `Habit`, `TimeLog`, `Task`, `Note` or `Category` carries a `userId` — so a second account would see the first one's data. Adding real multi-user means a `userId` on all five models plus a filter on every query, and a backfill for existing rows.
+- `passwordHash` is `select: false`, so it is absent unless a query asks for it. Only `auth.ts` does.
+- Sign-in failures are deliberately indistinguishable: a wrong password and an unknown email give the same message, and `authorize` compares against a constant hash when no user matches so both take the same time. Response timing otherwise reveals which emails exist.
+- `AUTH_SECRET` is required in `.env` alongside `DATABASE_URL`; without it Auth.js throws at startup.
+- `components/ChromeOnly.tsx` hides nav, timer and colophon on the auth routes, keyed off `AUTH_ROUTES` from `auth.config.ts` so the guard and the chrome can't disagree. The root layout is `async` and reads `auth()` so the nav's sign-out control is correct in the server HTML rather than appearing after hydration — which is also why every route now renders dynamically.
 
 **Notes are their own module too.** `store/noteSlice.ts` (mounted as `note`), `lib/markdown.ts`, `lib/noteView.ts`, `components/notes/`, `models/Note.ts`, `app/api/notes/`. Like tasks it touches `habit` only for a linked habit's colour and title.
 
@@ -94,6 +85,8 @@ Note that deleting a habit leaves any task pointing at it with a dangling `habit
 | `/api/tasks/[id]` | `PATCH`, `DELETE` (hard) |
 | `/api/notes` | `GET` (metadata only — projects `-content -blocks`), `POST` |
 | `/api/notes/[id]` | `GET` (full, body included), `PATCH`, `DELETE` (hard) |
+| `/api/auth/[...nextauth]` | `GET`, `POST` — Auth.js: session, csrf, sign-in/out callbacks |
+| `/api/auth/register` | `POST` — creates the one account; 409 if one exists |
 | `/api/categories` | `GET` (flat), `POST` |
 | `/api/categories/[id]` | `PATCH` (rejects cycles), `DELETE` (lifts contents to the parent) |
 | `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |

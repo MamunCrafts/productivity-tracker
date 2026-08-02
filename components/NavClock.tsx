@@ -16,9 +16,12 @@ import { useClock } from "@/components/useClock";
  * app for a hydration mismatch — it is sticky, so a reflow there moves the
  * whole page under it.
  *
- * The date shortens rather than disappears: a bare time is ambiguous by the
- * next morning. Below `sm` that is `Sun 3 Aug`, from `xl` the long form, and in
- * between the short one — the band where six tab labels leave the least room.
+ * The time is always here; the date comes and goes with the room for it. Below
+ * `sm` the tabs are behind the menu button, so there is width for `Sun 3 Aug`;
+ * from `xl` there is width for the long form. Between the two the bar is
+ * carrying the wordmark and six spelled-out tabs, and the date is what gives
+ * way — the time alone is ambiguous by the next morning, but only just, and a
+ * nav that wraps is worse.
  */
 export function NavClock() {
   const now = useClock();
@@ -39,10 +42,10 @@ export function NavClock() {
       >
         {formatTimeOfDay(now)}
       </time>
-      <span aria-hidden className="shrink-0 text-line-2">
+      <span aria-hidden className="shrink-0 text-line-2 sm:hidden xl:inline">
         ·
       </span>
-      <span className="truncate text-ink-3 xl:hidden">{short(now)}</span>
+      <span className="truncate text-ink-3 sm:hidden">{short(now)}</span>
       <span className="hidden truncate text-ink-3 xl:inline">{long(now)}</span>
     </span>
   );

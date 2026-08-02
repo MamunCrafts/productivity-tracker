@@ -8,7 +8,7 @@ import TaskModel from "@/models/Task";
  */
 export async function GET() {
   await dbConnect();
-  const tasks = await TaskModel.find().sort({ order: 1 });
+  const tasks = await TaskModel.find().sort({ order: 1 }).lean();
   return NextResponse.json(tasks);
 }
 

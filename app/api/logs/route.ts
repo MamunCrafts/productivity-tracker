@@ -4,7 +4,7 @@ import TimeLogModel from '@/models/TimeLog';
 
 export async function GET() {
   await dbConnect();
-  const logs = await TimeLogModel.find({});
+  const logs = await TimeLogModel.find({}).lean();
   return NextResponse.json(logs);
 }
 

@@ -22,6 +22,8 @@ const TaskSchema = new Schema<TaskDocument>({
   completedAt: { type: String, default: null },
 });
 
+TaskSchema.index({ order: 1 });
+
 // registerModel keeps the hot-reload guard in production and rebuilds the
 // schema in development, so a newly added field isn't silently dropped.
 const TaskModel: Model<TaskDocument> = registerModel<TaskDocument>(

@@ -16,6 +16,8 @@ const TimeLogSchema = new Schema<TimeLogDocument>({
   focusRating: { type: Number, default: null, min: 1, max: 5 },
 });
 
+TimeLogSchema.index({ habitId: 1, date: -1 });
+
 // registerModel keeps the hot-reload guard in production and rebuilds the
 // schema in development, so a newly added field isn't silently dropped.
 const TimeLogModel: Model<TimeLogDocument> = registerModel<TimeLogDocument>(

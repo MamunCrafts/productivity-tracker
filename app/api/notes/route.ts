@@ -15,7 +15,8 @@ export async function GET() {
   await dbConnect();
   const notes = await NoteModel.find()
     .select("-content -blocks")
-    .sort({ updatedAt: -1 });
+    .sort({ updatedAt: -1 })
+    .lean();
   return NextResponse.json(notes);
 }
 

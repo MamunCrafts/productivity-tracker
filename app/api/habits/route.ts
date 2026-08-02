@@ -8,7 +8,7 @@ import HabitModel from "@/models/Habit";
  */
 export async function GET() {
   await dbConnect();
-  const habits = await HabitModel.find({ status: { $ne: "Deleted" } });
+  const habits = await HabitModel.find({ status: { $ne: "Deleted" } }).lean();
   return NextResponse.json(habits);
 }
 

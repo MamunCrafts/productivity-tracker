@@ -12,6 +12,9 @@ const CategorySchema = new Schema<CategoryDocument>({
   createdAt: { type: String, required: true },
 });
 
+CategorySchema.index({ name: 1 });
+CategorySchema.index({ parentId: 1 });
+
 // registerModel keeps the hot-reload guard in production and rebuilds the
 // schema in development, so a newly added field isn't silently dropped.
 const CategoryModel: Model<CategoryDocument> = registerModel<CategoryDocument>(

@@ -34,6 +34,20 @@ const NoteSchema = new Schema<NoteDocument>({
   updatedAt: { type: String, required: true },
 });
 
+NoteSchema.index({ updatedAt: -1 });
+NoteSchema.index({ categoryId: 1 });
+
+/**
+ * The shelf is always read newest-first (`GET /api/notes`). Without this the
+ * sort is a blocking in-memory stage, and MongoDB caps those at 32MB — with
+ * `content` up to MAX_NOTE_BYTES apiece plus a block tree, a few dozen large
+ * notes could exceed it and the query would fail outright, not merely slow
+ * down. The projection isn't guaranteed to be pushed ahead of the sort, so
+ * excluding the bodies isn't protection on its own. This makes it a bounded
+ * index scan instead.
+ */
+NoteSchema.index({ updatedAt: -1 });
+
 // registerModel keeps the hot-reload guard in production and rebuilds the
 // schema in development, so a newly added field isn't silently dropped.
 const NoteModel: Model<NoteDocument> = registerModel<NoteDocument>(

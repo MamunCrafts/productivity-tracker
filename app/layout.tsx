@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { FocusTimer } from "@/components/FocusTimer";
 import { Colophon } from "@/components/Colophon";
 import { ChromeOnly } from "@/components/ChromeOnly";
+import { MobileTabBar } from "@/components/MobileTabBar";
 import { StatusBar } from "@/components/statusbar/StatusBar";
 import { auth } from "@/auth";
 import { THEME_SCRIPT } from "@/lib/theme";
@@ -81,7 +82,7 @@ export default async function RootLayout({
               <StatusBar />
             </div>
           </ChromeOnly>
-          {/* No client-side gate: middleware turns signed-out requests away
+          {/* No client-side gate: proxy turns signed-out requests away
               before this renders at all. */}
           <main className="flex-1 relative z-10">{children}</main>
           {/* Global so a running session stays reachable across both routes. */}
@@ -92,6 +93,17 @@ export default async function RootLayout({
 
         <ChromeOnly>
           <Colophon />
+          {/* The tab bar is fixed, so it sits outside the flow and would cover
+              the last lines of the colophon. This reserves its height at the
+              foot of the page instead of padding the body — the padding would
+              apply on the sign-in screens too, where `ChromeOnly` means there
+              is no bar to make room for. Zero from `sm` up. */}
+          <div
+            aria-hidden
+            className="shrink-0"
+            style={{ height: "var(--tabbar-h)" }}
+          />
+          <MobileTabBar />
         </ChromeOnly>
       </body>
     </html>

@@ -4,11 +4,10 @@ import type { NextAuthConfig } from "next-auth";
 export const AUTH_ROUTES = ["/login", "/register"];
 
 /**
- * The half of the Auth.js config that the Edge runtime can run.
+ * The half of the Auth.js config that the request proxy can run.
  *
- * `middleware.ts` imports this file and nothing else, because middleware runs
- * on Edge, where neither mongoose nor bcrypt exists. The credentials provider
- * — which needs both — is added in `auth.ts`, which only ever loads in Node.
+ * `proxy.ts` imports this file and nothing else, keeping the route guard
+ * separate from the database-backed credentials provider in `auth.ts`.
  * Splitting them is the documented Auth.js pattern, not a workaround.
  */
 export const authConfig = {
@@ -27,7 +26,7 @@ export const authConfig = {
 
   callbacks: {
     /**
-     * The whole route guard. Runs in middleware, so a signed-out request is
+     * The whole route guard. Runs in proxy, so a signed-out request is
      * turned away before any handler executes and before any markup is sent —
      * including for `/api/*`, which is why the API routes themselves don't
      * each repeat the check.

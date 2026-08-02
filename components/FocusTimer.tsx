@@ -200,7 +200,11 @@ function Session() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-line-2 bg-surface/95 backdrop-blur-xl"
+            // Lifted by the mobile tab bar's height so the two stack rather
+            // than one burying the other; `--tabbar-h` is 0 from `sm` up, where
+            // there is no bar, so this still sits flush on the desk.
+            style={{ bottom: "var(--tabbar-h)" }}
+            className="fixed inset-x-0 z-40 border-t border-line-2 bg-surface/95 backdrop-blur-xl"
           >
             {showPrompt && (
               <div className="border-b border-line bg-amber/10 px-6 py-2 text-center text-sm text-amber">

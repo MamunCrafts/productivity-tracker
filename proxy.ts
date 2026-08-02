@@ -7,9 +7,9 @@ import { authConfig } from "./auth.config";
  * don't each repeat the check.
  *
  * Only `auth.config.ts` is imported here — `auth.ts` pulls in mongoose and
- * bcrypt, and this runs on Edge, where neither exists.
+ * bcrypt, and the request proxy should stay separate from sign-in internals.
  */
-export default NextAuth(authConfig).auth;
+export const proxy = NextAuth(authConfig).auth;
 
 export const config = {
   matcher: [
@@ -17,7 +17,7 @@ export const config = {
      * Everything except:
      *  - `api/auth` — Auth.js's own endpoints plus `/api/auth/register`, all of
      *    which must work while signed out or there is no way to get in.
-     *  - static assets and the icon, which cost a middleware invocation each
+     *  - static assets and the icon, which cost a proxy invocation each
      *    for nothing.
      */
     "/((?!api/auth|_next/static|_next/image|icon\\.svg|favicon\\.ico).*)",

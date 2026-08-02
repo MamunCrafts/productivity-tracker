@@ -11,7 +11,7 @@ import { AUTH_ROUTES } from "@/auth.config";
  * that means relocating every existing page directory; this keeps the change to
  * the one thing that actually differs.
  *
- * Route only, never session state: middleware already guarantees that anything
+ * Route only, never session state: proxy already guarantees that anything
  * rendering this is signed in, and the route list is the same one the guard
  * uses, so the two can't drift.
  */

@@ -5,17 +5,33 @@ import {
   KanbanSquare,
   ListChecks,
   LogIn,
+  type LucideIcon,
   NotebookPen,
   UserPlus,
 } from "lucide-react";
 
+export type NavLink = {
+  href: string;
+  label: string;
+  /** Only where the full label won't fit a sixth of a phone. See `LINKS`. */
+  short?: string;
+  Icon: LucideIcon;
+};
+
 /**
- * The destination table, shared by the two things that render it: the tab strip
- * in `Nav` from `sm` up, and the drawer in `NavMenu` below it. It lives here
- * rather than in `Nav` so the drawer doesn't have to import its own parent.
+ * The destination table, shared by the three things that render it: the tab
+ * strip in `Nav` from `sm` up, the drawer in `NavMenu` below it, and the bottom
+ * tab bar in `MobileTabBar`. It lives here rather than in `Nav` so neither of
+ * the other two has to import its own parent.
+ *
+ * `short` is the label when the destination has a sixth of a 360px viewport to
+ * name itself in — the same trick the range filter on `/` plays with
+ * `RANGES[].short`. Only the one entry that doesn't fit carries it; everything
+ * else keeps a single name across all three surfaces, and `tabLabel` falls back
+ * so a new destination doesn't have to think about it.
  */
-export const LINKS = [
-  { href: "/", label: "Analytics", Icon: BarChart3 },
+export const LINKS: NavLink[] = [
+  { href: "/", label: "Analytics", short: "Stats", Icon: BarChart3 },
   { href: "/habits", label: "Habits", Icon: ListChecks },
   // Sits next to Habits because it is the same subject in the other tense:
   // Habits is what you are working on, Routine is when.
@@ -27,9 +43,9 @@ export const LINKS = [
 
 /**
  * Signed out, the two auth destinations take the place of the sign-out control.
- * They're kept rather than dropped so that exempting a route from the middleware
+ * They're kept rather than dropped so that exempting a route from the proxy
  * matcher later — a public landing page, say — leaves a working way in; as
- * things stand middleware means a signed-out visitor never reaches a page that
+ * things stand proxy means a signed-out visitor never reaches a page that
  * renders either nav.
  */
 export const AUTH_LINKS = [
@@ -44,4 +60,13 @@ export const AUTH_LINKS = [
  */
 export function isActiveHref(href: string, pathname: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+/**
+ * The name a destination goes by when it only has a tab's width. The full label
+ * stays the accessible name everywhere, so what a screen reader announces never
+ * depends on how much room the glyph had.
+ */
+export function tabLabel(link: NavLink) {
+  return link.short ?? link.label;
 }

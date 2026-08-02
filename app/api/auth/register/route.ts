@@ -6,7 +6,7 @@ import UserModel from "@/models/User";
 /**
  * Creates the one account.
  *
- * Sits under `/api/auth/` so the middleware matcher's single `api/auth`
+ * Sits under `/api/auth/` so the proxy matcher's single `api/auth`
  * exemption covers it as well as Auth.js's own endpoints — registration has to
  * be reachable while signed out. A static segment beats the `[...nextauth]`
  * catch-all in Next's routing, so this file wins the path.

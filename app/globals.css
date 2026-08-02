@@ -308,6 +308,32 @@ input[type="button"] {
   background-color: hsl(var(--amber) / 0.07);
 }
 
+/*
+  The height the mobile tab bar occupies at the foot of the page — 0 from `sm`
+  up, where the bar isn't rendered at all.
+
+  It is a variable rather than a literal because three separate things have to
+  agree on it: the bar reserves it, the body pads by it so the colophon's last
+  line isn't sitting under the bar, and the docked session bar lifts by it so a
+  running timer stacks above the destinations instead of burying them. Hard-code
+  it in three places and the next change to the bar's height desyncs two of
+  them.
+
+  The breakpoint is `max-width: 639.98px` because Tailwind's `sm` is a
+  `min-width: 640px` query and this has to be its exact complement — a plain
+  `639px` would leave a 1px band where the bar renders and nothing pads for it.
+*/
+:root {
+  --tabbar-h: 0px;
+}
+
+@media (max-width: 639.98px) {
+  :root {
+    /* 3.5rem of bar, plus whatever the iPhone home indicator claims below it. */
+    --tabbar-h: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 /* Lifted off the page — a dragged card, a dialog. Pure black at 40% reads as a
    bruise on paper, so light gets a shallower, warmer shadow instead. */
 .elev-lift {

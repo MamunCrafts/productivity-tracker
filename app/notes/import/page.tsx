@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { NoteDropzone, type ReadFile } from "@/components/notes/NoteDropzone";
 import { NoteBody } from "@/components/notes/BlockRenderer";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
+import { HabitPicker } from "@/components/notes/HabitPicker";
 import { dropRedundantTitle, readingMinutes } from "@/lib/noteView";
 import { cn } from "@/lib/utils";
 
@@ -226,20 +227,11 @@ export default function ImportNotesPage() {
                       <span className="mb-1.5 block text-xs uppercase tracking-wider text-ink-3">
                         Habit (optional)
                       </span>
-                      <select
-                        value={active.habitId ?? ""}
-                        onChange={(e) =>
-                          patchActive({ habitId: e.target.value || null })
-                        }
-                        className="w-full rounded-md border border-line-2 bg-base px-3 py-2 text-ink outline-none focus:border-amber"
-                      >
-                        <option value="">No habit</option>
-                        {habits.map((habit) => (
-                          <option key={habit.id} value={habit.id}>
-                            {habit.title}
-                          </option>
-                        ))}
-                      </select>
+                      <HabitPicker
+                        habits={habits}
+                        value={active.habitId}
+                        onChange={(habitId) => patchActive({ habitId })}
+                      />
                     </label>
                   </div>
 

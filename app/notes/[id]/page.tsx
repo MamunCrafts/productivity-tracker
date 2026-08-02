@@ -10,14 +10,17 @@ import {
   FolderInput,
   Pin,
   PinOff,
+  Play,
   Trash2,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteNoteAsync, fetchNote, updateNoteAsync } from "@/store/noteSlice";
+import { startTimer } from "@/store/habitSlice";
 import { NoteBody } from "@/components/notes/BlockRenderer";
 import { Button } from "@/components/ui/button";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
+import { HabitPicker } from "@/components/notes/HabitPicker";
 import { Shimmer } from "@/components/ui/shimmer";
 import { pathOf } from "@/lib/tree";
 import {
@@ -40,6 +43,18 @@ export default function NotePage() {
   });
 
   const categories = useAppSelector((state) => state.note.categories);
+  const habits = useAppSelector((state) => state.habit.habits);
+  const activeTimer = useAppSelector((state) => state.habit.activeTimer);
+
+  // The habit you can start a session on, as opposed to the one you can merely
+  // read about. A finished or paused habit isn't taking sessions, and a
+  // soft-deleted one never reaches `habits` in the first place — so the button
+  // is simply absent in all three cases rather than present and inert.
+  const focusHabit =
+    habit && !habit.completed && habit.status !== "Paused" ? habit : undefined;
+  // Written long-hand: `activeTimer?.habitId === habit?.id` reads true when
+  // there is neither a timer nor a habit, both being undefined.
+  const isRunning = habit ? activeTimer?.habitId === habit.id : false;
   const [missing, setMissing] = useState(false);
   const [moving, setMoving] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -128,77 +143,111 @@ export default function NotePage() {
                   hidden below lg, and a control you can't reach on a phone is
                   a control that doesn't exist. */}
               {meta && (
-                <div className="flex shrink-0 items-center gap-0.5 opacity-80 transition-opacity focus-within:opacity-100 hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-9 w-9", moving && "bg-surface-2 text-ink")}
-                    title="Move to a folder"
-                    onClick={() => setMoving((prev) => !prev)}
-                  >
-                    <FolderInput className="h-4 w-4" />
-                    <span className="sr-only">Move to a folder</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    title={meta.pinnedAt ? "Unpin note" : "Pin note"}
-                    onClick={() =>
-                      dispatch(
-                        updateNoteAsync({
-                          id,
-                          patch: {
-                            pinnedAt: meta.pinnedAt ? null : new Date().toISOString(),
-                          },
-                        })
-                      )
-                    }
-                  >
-                    {meta.pinnedAt ? (
-                      <PinOff className="h-4 w-4" />
-                    ) : (
-                      <Pin className="h-4 w-4" />
-                    )}
-                    <span className="sr-only">{meta.pinnedAt ? "Unpin" : "Pin"}</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9"
-                    title="Download the original markdown"
-                    onClick={download}
-                    disabled={!note}
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="sr-only">Download original file</span>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-9 w-9",
-                      confirming && "bg-danger/12 text-danger hover:bg-danger/20"
-                    )}
-                    title={confirming ? "Tap again to delete" : "Delete note"}
-                    onClick={async () => {
-                      if (!confirming) {
-                        setConfirming(true);
-                        return;
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {/* The habit is the one thing on this page you can act on
+                      rather than only read, so it gets a labelled button at
+                      full weight while the file-management icons stay
+                      recessive beside it. Same control as `HabitCard`'s,
+                      because it starts the same session — the timer is docked
+                      from the layout, so it appears without leaving the note
+                      you're reading. */}
+                  {focusHabit && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        !activeTimer && dispatch(startTimer(focusHabit.id))
                       }
-                      await dispatch(deleteNoteAsync(id));
-                      router.push("/notes");
-                    }}
-                    onBlur={() => setConfirming(false)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">
-                      {confirming ? "Confirm delete" : "Delete note"}
-                    </span>
-                  </Button>
+                      disabled={Boolean(activeTimer)}
+                      variant={isRunning ? "secondary" : "default"}
+                      className="gap-2"
+                      title={
+                        activeTimer && !isRunning
+                          ? "Another session is running — stop it first"
+                          : `Start a focus session on ${focusHabit.title}`
+                      }
+                    >
+                      <Play className="h-3.5 w-3.5" fill="currentColor" />
+                      {isRunning ? "In session" : "Start focus"}
+                    </Button>
+                  )}
+
+                  <div className="flex items-center gap-0.5 opacity-80 transition-opacity focus-within:opacity-100 hover:opacity-100">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn("h-9 w-9", moving && "bg-surface-2 text-ink")}
+                      title="Folder and habit"
+                      aria-expanded={moving}
+                      onClick={() => setMoving((prev) => !prev)}
+                    >
+                      <FolderInput className="h-4 w-4" />
+                      <span className="sr-only">Folder and habit</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      title={meta.pinnedAt ? "Unpin note" : "Pin note"}
+                      onClick={() =>
+                        dispatch(
+                          updateNoteAsync({
+                            id,
+                            patch: {
+                              pinnedAt: meta.pinnedAt
+                                ? null
+                                : new Date().toISOString(),
+                            },
+                          })
+                        )
+                      }
+                    >
+                      {meta.pinnedAt ? (
+                        <PinOff className="h-4 w-4" />
+                      ) : (
+                        <Pin className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">
+                        {meta.pinnedAt ? "Unpin" : "Pin"}
+                      </span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      title="Download the original markdown"
+                      onClick={download}
+                      disabled={!note}
+                    >
+                      <Download className="h-4 w-4" />
+                      <span className="sr-only">Download original file</span>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9",
+                        confirming && "bg-danger/12 text-danger hover:bg-danger/20"
+                      )}
+                      title={confirming ? "Tap again to delete" : "Delete note"}
+                      onClick={async () => {
+                        if (!confirming) {
+                          setConfirming(true);
+                          return;
+                        }
+                        await dispatch(deleteNoteAsync(id));
+                        router.push("/notes");
+                      }}
+                      onBlur={() => setConfirming(false)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">
+                        {confirming ? "Confirm delete" : "Delete note"}
+                      </span>
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -228,20 +277,38 @@ export default function NotePage() {
               </div>
             )}
 
+            {/* Both of a note's attachments, in one panel. The panel no longer
+                closes on a change: with two fields, dismissing after the first
+                one made setting the second a second trip through the toggle. */}
             {moving && meta && (
-              <div className="mt-4 max-w-xs">
-                <label className="mb-1.5 block text-xs uppercase tracking-wider text-ink-3">
-                  Folder
+              <div className="mt-4 grid max-w-lg gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-xs uppercase tracking-wider text-ink-3">
+                    Folder
+                  </span>
+                  <CategoryPicker
+                    categories={categories}
+                    value={meta.categoryId}
+                    onChange={(categoryId) =>
+                      dispatch(updateNoteAsync({ id, patch: { categoryId } }))
+                    }
+                    className="text-sm"
+                  />
                 </label>
-                <CategoryPicker
-                  categories={categories}
-                  value={meta.categoryId}
-                  onChange={(categoryId) => {
-                    dispatch(updateNoteAsync({ id, patch: { categoryId } }));
-                    setMoving(false);
-                  }}
-                  className="text-sm"
-                />
+
+                <label className="block">
+                  <span className="mb-1.5 block text-xs uppercase tracking-wider text-ink-3">
+                    Habit
+                  </span>
+                  <HabitPicker
+                    habits={habits}
+                    value={meta.habitId}
+                    onChange={(habitId) =>
+                      dispatch(updateNoteAsync({ id, patch: { habitId } }))
+                    }
+                    className="text-sm"
+                  />
+                </label>
               </div>
             )}
 

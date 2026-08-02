@@ -125,6 +125,97 @@ export function overlappingIds(dayBlocks: RoutineBlock[]): Set<string> {
   return clashing;
 }
 
+/**
+ * What the routine says is happening, as one answer.
+ *
+ * `current` is the block the clock is inside right now; `next` is the one that
+ * starts soonest after it. Both are null when the routine is empty, and
+ * `current` alone is null the whole time you're between blocks — which is the
+ * case the status strip exists to fill, since "nothing until 6pm" is as much an
+ * answer as "you're in Deep work".
+ *
+ * Three things this has to get right, and each is a bug if it doesn't:
+ *
+ * - **A block that crosses midnight is still running after it.** A slot from
+ *   23:00 for two hours is current at 00:30, so yesterday's blocks are checked
+ *   against a minute count offset by a day rather than only today's.
+ * - **`next` can be tomorrow.** After the last block of the day the honest
+ *   answer is the first of the next, so the search walks forward a week —
+ *   enough to find the next occurrence of a block that runs on one weekday
+ *   only, and bounded so an empty routine terminates.
+ * - **Overlaps are real** (`overlappingIds` exists because of them), so
+ *   `current` picks the block ending soonest — the one you are about to be
+ *   released from — and `overlapping` counts what else is running alongside it.
+ */
+export function routineNow(
+  blocks: RoutineBlock[],
+  date: Date
+): {
+  current: RoutineBlock | null;
+  next: RoutineBlock | null;
+  /** Minutes until `current` ends, or until `next` starts when nothing is on. */
+  minutesLeft: number;
+  /** How many other blocks are running at the same time as `current`. */
+  overlapping: number;
+  /** Days from `date` to `next`: 0 today, 1 tomorrow, and so on. */
+  nextDayOffset: number;
+} {
+  const nowMinutes = date.getHours() * 60 + date.getMinutes();
+
+  const yesterday = new Date(date);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // A block is running if `now` sits inside it. Yesterday's are measured
+  // against `nowMinutes + 1440`, which is the only way a 23:00 block is still
+  // current at 00:30.
+  const running = [
+    ...blocksForDay(blocks, date).map((block) => ({ block, offset: 0 })),
+    ...blocksForDay(blocks, yesterday).map((block) => ({ block, offset: -1440 })),
+  ]
+    .map(({ block, offset }) => ({
+      block,
+      start: minutesOf(block.startTime) + offset,
+      end: minutesOf(block.startTime) + offset + block.durationMinutes,
+    }))
+    .filter(({ start, end }) => nowMinutes >= start && nowMinutes < end)
+    .sort((a, b) => a.end - b.end);
+
+  const current = running[0]?.block ?? null;
+
+  // The next start strictly after now, walking forward until one turns up. A
+  // week covers a block that recurs on a single weekday; past that there is
+  // nothing to find.
+  let next: RoutineBlock | null = null;
+  let nextStart = 0;
+  let dayOffset = 0;
+  for (; dayOffset < 8 && !next; dayOffset++) {
+    const day = new Date(date);
+    day.setDate(day.getDate() + dayOffset);
+    for (const block of blocksForDay(blocks, day)) {
+      const start = minutesOf(block.startTime) + dayOffset * 1440;
+      // `>` not `>=`: a block starting this very minute is `current`, not next.
+      if (start > nowMinutes && (!next || start < nextStart)) {
+        next = block;
+        nextStart = start;
+      }
+    }
+  }
+
+  return {
+    current,
+    next,
+    minutesLeft: current
+      ? running[0].end - nowMinutes
+      : next
+        ? nextStart - nowMinutes
+        : 0,
+    overlapping: Math.max(0, running.length - 1),
+    // The loop increments once more before its `!next` guard stops it, so the
+    // day the block was actually found on is one back.
+    nextDayOffset: next ? dayOffset - 1 : 0,
+  };
+}
+
 /** `YYYY-MM-DD` in local time. Matches `dayKey` in `lib/analytics.ts` without importing date-fns. */
 export function localDayKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(

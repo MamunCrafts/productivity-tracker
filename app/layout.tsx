@@ -7,7 +7,7 @@ import { FocusTimer } from "@/components/FocusTimer";
 import { Colophon } from "@/components/Colophon";
 import { ChromeOnly } from "@/components/ChromeOnly";
 import { MobileTabBar } from "@/components/MobileTabBar";
-import { StatusBar } from "@/components/statusbar/StatusBar";
+import { RoutineStrip } from "@/components/RoutineStrip";
 import { auth } from "@/auth";
 import { THEME_SCRIPT } from "@/lib/theme";
 
@@ -75,11 +75,11 @@ export default async function RootLayout({
             <div className="relative z-10">
               <Nav signedIn={Boolean(session?.user)} />
               {/* Below the nav rather than inside it: the nav is sticky and
-                  already carries six tabs and two controls, and ambient
-                  context has no business travelling down the page with the
-                  destinations. Inside `ChromeOnly` so the sign-in screens
-                  stay bare. */}
-              <StatusBar />
+                  already carries the clock, six tabs and two controls, and a
+                  line about your own day has no business travelling down the
+                  page with the destinations. Inside `ChromeOnly` so the
+                  sign-in screens stay bare. */}
+              <RoutineStrip />
             </div>
           </ChromeOnly>
           {/* No client-side gate: proxy turns signed-out requests away

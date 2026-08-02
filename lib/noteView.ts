@@ -63,3 +63,27 @@ export function tableOfContents(blocks: Block[]) {
 export function readingMinutes(wordCount: number): number {
   return Math.max(1, Math.round(wordCount / 200));
 }
+
+/**
+ * Every tag in a set of notes with how many carry it, commonest first and
+ * alphabetical within a tie.
+ *
+ * Ordered by weight rather than name because the filter row shows the head of
+ * this list and folds the tail away — sorted alphabetically, the cut would fall
+ * in an arbitrary place and hide the tag you reach for most. Counted over
+ * whatever is passed in, so a folder's row offers only the tags that folder
+ * actually holds and no choice in it can return nothing.
+ */
+export function tagCounts(
+  notes: { tags: string[] }[]
+): { tag: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const note of notes) {
+    for (const tag of note.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return [...counts].
+    map(([tag, count]) => ({ tag, count })).
+    sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
+}

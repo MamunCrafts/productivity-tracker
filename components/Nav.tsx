@@ -6,15 +6,21 @@ import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { NavMenu } from "@/components/NavMenu";
+import { NavClock } from "@/components/NavClock";
 import { Mark } from "@/components/Mark";
 import { AUTH_LINKS, LINKS, isActiveHref } from "@/components/navLinks";
 import { cn } from "@/lib/utils";
 
 /**
- * From `sm` up this is the whole nav: wordmark, six tabs, and the controls
- * pushed right. Below it, everything but the wordmark collapses into
+ * From `sm` up this is the whole nav: mark, clock, six tabs, and the controls
+ * pushed right. Below it, everything but the mark and the clock collapses into
  * `NavMenu` — the tabs and two controls overran the 360px viewport, and each
  * tab sat under the 44px touch minimum.
+ *
+ * The wordmark is gone from here. It was the least useful thing in the bar, and
+ * the time and date it made room for are the one piece of context every page
+ * wants and none of them own. The mark still carries the identity and still
+ * links home.
  */
 export function Nav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
@@ -22,17 +28,18 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
   return (
     <nav className="sticky top-0 z-30 border-b border-line bg-base/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2 font-display text-base text-ink"
-        >
-          <Mark className="h-4 w-4 shrink-0 text-amber" />
-          {/* The wordmark used to be the first thing cut on a phone, because
-              the destinations mattered more than the name of the app you were
-              in. With those behind the menu button there's room for it, and a
-              bar holding nothing but a mark and a hamburger reads unfinished. */}
-          <span>Productivity Tracker</span>
-        </Link>
+        {/* The mark is the link home; the clock beside it isn't part of it —
+            "go to analytics" is not what a tap on a date means. */}
+        <div className="flex min-w-0 items-center gap-2 sm:shrink-0">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center rounded p-0.5 text-ink transition-colors hover:text-amber"
+          >
+            <Mark className="h-4 w-4 shrink-0 text-amber" />
+            <span className="sr-only">Productivity Tracker — analytics</span>
+          </Link>
+          <NavClock />
+        </div>
 
         <div className="hidden items-center gap-1 sm:flex">
           {LINKS.map(({ href, label, Icon }) => {

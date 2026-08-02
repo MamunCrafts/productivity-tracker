@@ -124,8 +124,8 @@ export function HabitForm({ habit }: HabitFormProps) {
             <span className="sr-only">Edit {habit?.title}</span>
           </Button>
         ) : (
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> New habit
+          <Button className="h-8 gap-1 px-2.5 text-[11px] sm:h-10 sm:gap-2 sm:px-4 sm:text-sm">
+            <Plus className="h-3 w-3 sm:h-4 sm:w-4" /> New habit
           </Button>
         )}
       </DialogTrigger>

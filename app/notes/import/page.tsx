@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Loader2, Trash2, TriangleAlert } from "lucide-reac
 import type { Block } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { createNote } from "@/store/noteSlice";
+import { PageHeader, PageShell } from "@/components/PageFrame";
 import { Button } from "@/components/ui/button";
 import { NoteDropzone, type ReadFile } from "@/components/notes/NoteDropzone";
 import { NoteBody } from "@/components/notes/BlockRenderer";
@@ -121,23 +122,29 @@ export default function ImportNotesPage() {
     : undefined;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-14 pb-28">
-      <header className="mb-8">
-        <Link
-          href="/notes"
-          className="inline-flex items-center gap-1.5 text-sm text-ink-2 transition-colors hover:text-ink"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
-          Notes
-        </Link>
-        <h1 className="mt-3 font-display text-4xl font-medium leading-tight text-ink">
-          Import markdown
-        </h1>
-        <p className="mt-2 max-w-prose text-ink-2">
-          Files are read in the browser and shown exactly as they&apos;ll be
-          stored. Check the title, then save.
-        </p>
-      </header>
+    <PageShell width="7xl">
+      <PageHeader
+        eyebrow={
+          <Link
+            href="/notes"
+            // `-ml-2 py-2 pl-2` on a phone: the back link is the only way out
+            // of this page and a 20px-tall text link is not a target. The
+            // negative margin keeps the text itself on the page's left edge.
+            className="-ml-2 inline-flex items-center gap-1.5 py-2 pl-2 text-sm text-ink-2 transition-colors hover:text-ink sm:ml-0 sm:py-0 sm:pl-0"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+            Notes
+          </Link>
+        }
+        title="Import markdown"
+        lead={
+          <span className="block max-w-prose">
+            Files are read in the browser and shown exactly as they&apos;ll be
+            stored. Check the title, then save.
+          </span>
+        }
+        className="sm:mb-8"
+      />
 
       {staged.length === 0 ? (
         <NoteDropzone onFiles={handleFiles} />
@@ -304,6 +311,6 @@ export default function ImportNotesPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

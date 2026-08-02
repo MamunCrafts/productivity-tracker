@@ -24,6 +24,7 @@ import { HabitBreakdownChart } from "@/components/analytics/HabitBreakdownChart"
 import { WeekdayChart } from "@/components/analytics/WeekdayChart";
 import { ConsistencyHeatmap } from "@/components/analytics/ConsistencyHeatmap";
 import { GoalProgress } from "@/components/analytics/GoalProgress";
+import { PageHeader, PageShell } from "@/components/PageFrame";
 import { ShimmerStat } from "@/components/ui/shimmer";
 
 export default function Home() {
@@ -51,15 +52,12 @@ export default function Home() {
   const sparkline = view.daily.slice(-12).map((d) => d.hours);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-14 pb-28">
-      <header className="mb-8">
-        <h1 className="font-display text-4xl font-medium leading-tight text-ink">
-          The record
-        </h1>
-        <p className="mt-2 text-ink-2">
-          How your focus time adds up across every habit.
-        </p>
-      </header>
+    <PageShell width="7xl">
+      <PageHeader
+        title="The record"
+        lead="How your focus time adds up across every habit."
+        className="sm:mb-8"
+      />
 
       {/* The filter takes the full row on a phone, where `ExportButton` renders
           nothing; from `sm` the two share it. */}
@@ -127,6 +125,6 @@ export default function Home() {
           </section>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

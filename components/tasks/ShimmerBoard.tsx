@@ -1,5 +1,6 @@
 import { Shimmer } from "@/components/ui/shimmer";
 import { COLUMNS } from "@/lib/board";
+import { cn } from "@/lib/utils";
 
 /** Same silhouette as the loaded board, so nothing shifts when tasks land. */
 export function ShimmerBoard() {
@@ -8,13 +9,20 @@ export function ShimmerBoard() {
       role="status"
       aria-busy="true"
       aria-live="polite"
-      className="-mx-6 overflow-x-auto px-6 pb-2 lg:mx-0 lg:overflow-visible lg:px-0"
+      className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0"
     >
       <div className="flex items-start gap-4 lg:grid lg:grid-cols-3">
         {COLUMNS.map((column, columnIndex) => (
           <div
             key={column.status}
-            className="w-[86vw] shrink-0 rounded-xl border border-line bg-base/40 sm:w-72 lg:w-full lg:shrink"
+            className={cn(
+              // Matches the loaded board: one full-width column on a phone, a
+              // row of fixed-width ones from `sm`.
+              "w-full shrink-0 rounded-xl border border-line bg-base/40 sm:w-72 lg:w-full lg:shrink",
+              // Only the first column is shown on a phone, as the switcher
+              // opens on "To do".
+              columnIndex > 0 && "hidden sm:block"
+            )}
           >
             <div className="border-b border-line px-4 py-3">
               <Shimmer className="h-3 w-20 rounded" delay={columnIndex * 120} />

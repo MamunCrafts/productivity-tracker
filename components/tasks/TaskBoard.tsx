@@ -16,7 +16,9 @@ import {
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { moveTaskAsync } from "@/store/taskSlice";
+import type { TaskStatus } from "@/types";
 import { COLUMNS, dropTarget, groupByStatus, isTaskStatus } from "@/lib/board";
+import { ColumnSwitcher } from "./ColumnSwitcher";
 import { TaskColumn } from "./TaskColumn";
 import { TaskCard } from "./TaskCard";
 import { TaskForm } from "./TaskForm";
@@ -26,6 +28,9 @@ export function TaskBoard() {
   const dispatch = useAppDispatch();
   const { tasks, status } = useAppSelector((state) => state.task);
   const [dragging, setDragging] = useState<string | null>(null);
+  // Which column the phone is showing. Reading order, so the board opens on
+  // the work that hasn't started rather than on what is already finished.
+  const [visible, setVisible] = useState<TaskStatus>("Todo");
 
   const columns = useMemo(() => groupByStatus(tasks), [tasks]);
 
@@ -113,9 +118,17 @@ export function TaskBoard() {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      {/* Three columns don't fit a phone; below lg the board is a snapping
-          horizontal scroller and each column keeps its full width. */}
-      <div className="-mx-6 overflow-x-auto px-6 pb-2 lg:mx-0 lg:overflow-visible lg:px-0">
+      {/* A phone shows one column, chosen here. From `sm` the scroller does the
+          job and this isn't rendered. */}
+      <ColumnSwitcher value={visible} onChange={setVisible} columns={columns} />
+
+      {/* Three columns don't fit a phone. Below `sm` one is shown at a time;
+          from `sm` to `lg` the board is a snapping horizontal scroller with
+          each column at its own width; from `lg` it is a plain three-up grid.
+          The negative margin has to match the page gutter at each width or the
+          scroller pushes past the viewport — `px-4` on a phone, `px-6` from
+          `sm`, and nothing from `lg`, where there is no scroller left. */}
+      <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:overflow-visible lg:px-0">
         <div className="flex snap-x snap-mandatory items-start gap-4 lg:grid lg:grid-cols-3">
           {COLUMNS.map(({ status: columnStatus, label, hint }) => (
             <TaskColumn
@@ -124,6 +137,7 @@ export function TaskBoard() {
               label={label}
               hint={hint}
               tasks={columns[columnStatus]}
+              hiddenOnPhone={columnStatus !== visible}
             />
           ))}
         </div>

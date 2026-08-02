@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 
 /** Reachable while signed out, or there is no way in. */
-export const AUTH_ROUTES = ["/login", "/register"];
+export const AUTH_ROUTES = ["/login"];
 
 /**
  * The half of the Auth.js config that the request proxy can run.

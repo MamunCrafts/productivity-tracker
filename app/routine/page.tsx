@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import type { RoutineBlock } from "@/types";
 import { fetchRoutine } from "@/store/routineSlice";
 import { fetchHabits } from "@/store/habitSlice";
+import { PageHeader, PageShell } from "@/components/PageFrame";
 import { DayColumn } from "@/components/routine/DayColumn";
 import { RoutineForm } from "@/components/routine/RoutineForm";
 import { ShimmerRows } from "@/components/ui/shimmer";
@@ -66,19 +67,19 @@ export default function RoutinePage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-14 pb-28">
-      <header className="mb-12 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-4xl font-medium leading-tight text-ink">
-            Routine
-          </h1>
-          <p className="mt-2 text-sm text-ink-2">
+    <PageShell width="5xl">
+      <PageHeader
+        title="Routine"
+        // The one lead that stays at `text-sm` on the desk, as it always has.
+        lead={
+          <span className="sm:text-sm">
             The shape of a day. Set a block once and it lands on every day you
             choose.
-          </p>
-        </div>
-        <RoutineForm />
-      </header>
+          </span>
+        }
+        action={<RoutineForm />}
+        className="sm:mb-12"
+      />
 
       {status === "failed" && blocks.length === 0 ? (
         <p role="alert" className="text-sm text-danger">
@@ -105,7 +106,7 @@ export default function RoutinePage() {
           <WeekSummary blocks={blocks} weekMinutes={weekMinutes} />
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -167,7 +168,10 @@ function WeekSummary({
 
       {/* Wide content gets its own scroller — the page body never scrolls
           sideways, per the mobile rule. */}
-      <div className="-mx-6 overflow-x-auto px-6">
+      {/* The negative margin has to match the page gutter, which is `px-4`
+          on a phone and `px-6` from `sm` — mismatch it and the table pushes
+          past the viewport instead of sitting flush inside it. */}
+      <div className="-mx-4 overflow-x-auto px-4 sm:-mx-6 sm:px-6">
         <table className="w-full min-w-[26rem] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line-2 text-left">

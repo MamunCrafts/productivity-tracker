@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { pathLabel } from "@/lib/tree";
 import { readingMinutes } from "@/lib/noteView";
 import { CategoryPicker } from "./CategoryPicker";
+import { TagList } from "./TagList";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,7 +40,11 @@ export function NoteCard({ note }: { note: NoteMeta }) {
         />
       )}
 
-      <div className="flex flex-col gap-4 p-5 pl-6 sm:flex-row sm:items-start sm:gap-6">
+      {/* Tighter on a phone — 20px of padding either side of a 360px viewport
+          is 11% of the width spent on nothing. The action row lands under the
+          text there, so it is pushed to the right edge to keep the shape it
+          has on the desk. */}
+      <div className="flex flex-col gap-3 p-4 pl-5 sm:flex-row sm:items-start sm:gap-6 sm:p-5 sm:pl-6">
         <div className="min-w-0 flex-1">
           <Link href={`/notes/${note.id}`} className="block">
             {/* The link covers the row, so the whole card is the target; the
@@ -88,23 +93,14 @@ export function NoteCard({ note }: { note: NoteMeta }) {
             )}
           </div>
 
-          {note.tags.length > 0 && (
-            <ul className="relative z-10 mt-3 flex flex-wrap gap-1.5">
-              {note.tags.map((tag) => (
-                <li
-                  key={tag}
-                  className="rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] text-ink-2"
-                >
-                  {tag}
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* Four is what fits beside the row's meta line at 360px without
+              wrapping to a third line. */}
+          <TagList tags={note.tags} max={4} className="mt-3" />
         </div>
 
         {/* Touch has no hover, so these sit visible-but-quiet rather than
             hidden behind group-hover. */}
-        <div className="relative z-10 flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+        <div className="relative z-10 flex shrink-0 items-center justify-end gap-0.5 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
           <Button
             size="icon"
             variant="ghost"
@@ -182,7 +178,9 @@ export function NoteCard({ note }: { note: NoteMeta }) {
               dispatch(updateNoteAsync({ id: note.id, patch: { categoryId } }));
               setMoving(false);
             }}
-            className="text-sm"
+            // `text-base` below `sm`: iOS zooms the page in on a select
+            // under 16px just as it does on an input.
+            className="text-base sm:text-sm"
           />
         </div>
       )}

@@ -6,10 +6,12 @@ import { ChevronRight, FileUp, FolderTree, Search } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
 import { sortNotes } from "@/store/noteSlice";
 import { pathOf, subtreeIds } from "@/lib/tree";
+import { tagCounts } from "@/lib/noteView";
 import { ShimmerRows } from "@/components/ui/shimmer";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NoteCard } from "./NoteCard";
+import { TagFilter } from "./TagFilter";
 import { CategoryTree, UNFILED, type Selection } from "./CategoryTree";
 
 /**
@@ -29,11 +31,6 @@ export function NoteList() {
   const [selected, setSelected] = useState<Selection>(null);
   const [showFolders, setShowFolders] = useState(false);
 
-  const tags = useMemo(
-    () => [...new Set(notes.flatMap((n) => n.tags))].sort(),
-    [notes]
-  );
-
   // A folder means itself and everything under it; showing only direct
   // children would make a parent look empty while its subfolders hold notes.
   const inScope = useMemo(() => {
@@ -42,6 +39,11 @@ export function NoteList() {
     const ids = subtreeIds(categories, selected);
     return notes.filter((n) => n.categoryId && ids.has(n.categoryId));
   }, [notes, categories, selected]);
+
+  // Counted over the folder in view rather than the whole shelf, so the row
+  // only ever offers tags that have something behind them here — picking one
+  // can no longer land on "No notes match that".
+  const tags = useMemo(() => tagCounts(inScope), [inScope]);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -89,7 +91,7 @@ export function NoteList() {
           type="button"
           onClick={() => setShowFolders((prev) => !prev)}
           aria-expanded={showFolders}
-          className="flex w-full items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-2 transition-colors hover:text-ink"
+          className="flex min-h-11 w-full items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-2 transition-colors hover:text-ink lg:min-h-0"
         >
           <FolderTree className="h-4 w-4 shrink-0 text-ink-3" aria-hidden />
           <span className="min-w-0 flex-1 truncate text-left">
@@ -156,8 +158,10 @@ export function NoteList() {
           </nav>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+        {/* The tag row wraps, so it takes a line of its own rather than
+            competing with the search field for one. */}
+        <div className="space-y-3">
+          <div className="relative">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3"
               aria-hidden
@@ -168,33 +172,15 @@ export function NoteList() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search titles and tags"
               aria-label="Search notes"
-              className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-line-2"
+              // `text-base` on a phone is not a size choice: iOS Safari zooms
+              // the page in on any input under 16px, and it does not zoom back
+              // out. `h-11` matches the `Input` primitive, which is sized for
+              // the same two reasons.
+              className="h-11 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-line-2 sm:h-10 sm:text-sm"
             />
           </div>
 
-          {tags.length > 0 && (
-            // Its own scroller: a long tag row must not widen the page.
-            <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:max-w-[50%] sm:px-0">
-              <div className="flex w-max items-center gap-1.5">
-                {tags.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTag(tag === t ? null : t)}
-                    aria-pressed={tag === t}
-                    className={cn(
-                      "shrink-0 rounded-full border px-2.5 py-1 text-xs transition-colors",
-                      tag === t
-                        ? "border-line-2 bg-surface-2 text-ink"
-                        : "border-line text-ink-2 hover:text-ink"
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <TagFilter tags={tags} value={tag} onChange={setTag} />
         </div>
 
         {visible.length === 0 ? (

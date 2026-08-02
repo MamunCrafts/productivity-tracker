@@ -7,7 +7,6 @@ import {
   LogIn,
   type LucideIcon,
   NotebookPen,
-  UserPlus,
 } from "lucide-react";
 
 export type NavLink = {
@@ -42,15 +41,11 @@ export const LINKS: NavLink[] = [
 ];
 
 /**
- * Signed out, the two auth destinations take the place of the sign-out control.
- * They're kept rather than dropped so that exempting a route from the proxy
- * matcher later — a public landing page, say — leaves a working way in; as
- * things stand proxy means a signed-out visitor never reaches a page that
- * renders either nav.
+ * Signed out, the auth destination takes the place of the sign-out control.
+ * It stays available so any future public page still has a working way in.
  */
 export const AUTH_LINKS = [
   { href: "/login", label: "Login", Icon: LogIn },
-  { href: "/register", label: "Register", Icon: UserPlus },
 ];
 
 /**

@@ -141,8 +141,10 @@ export function RoutineForm({
             <Pencil className="h-3.5 w-3.5" aria-hidden />
           </Button>
         ) : (
-          <Button>
-            <Plus className="h-4 w-4" aria-hidden />
+          // Compact on a phone: see `HabitForm` — it shares the header's first
+          // row with the page title.
+          <Button className="h-9 gap-1.5 px-3 text-xs sm:h-10 sm:gap-2 sm:px-4 sm:text-sm">
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
             Add block
           </Button>
         )}

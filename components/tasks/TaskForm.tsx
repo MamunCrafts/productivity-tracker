@@ -113,15 +113,20 @@ export function TaskForm({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 shrink-0"
+            // Larger on a phone: this is how a card gets added to the column
+            // you're looking at, and 32px is a small target for a thumb.
+            className="h-10 w-10 shrink-0 sm:h-8 sm:w-8"
             title={`Add to ${defaultStatus}`}
           >
             <Plus className="h-4 w-4" />
             <span className="sr-only">Add a task to {defaultStatus}</span>
           </Button>
         ) : (
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" /> New task
+          // Compact on a phone, where it shares the header's first row with the
+          // page title — the same treatment as `HabitForm`'s trigger, so the
+          // two pages open identically.
+          <Button className="h-9 gap-1.5 px-3 text-xs sm:h-10 sm:gap-2 sm:px-4 sm:text-sm">
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> New task
           </Button>
         )}
       </DialogTrigger>

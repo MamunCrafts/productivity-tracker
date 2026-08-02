@@ -9,11 +9,20 @@ import { RoutineBlock, RoutineBlockPatch } from "@/types";
 interface RoutineState {
   blocks: RoutineBlock[];
   status: "idle" | "loading" | "failed";
+  /**
+   * Whether a fetch has ever settled. `status` can't answer this — it returns
+   * to `"idle"` on success, so "never asked" and "asked, and the routine is
+   * empty" are the same value. `RoutineNow` needs them apart: it holds a row
+   * of height open while the answer is unknown and collapses only once it
+   * knows there is nothing to show, so the common case has no layout shift.
+   */
+  loaded: boolean;
 }
 
 const initialState: RoutineState = {
   blocks: [],
   status: "idle",
+  loaded: false,
 };
 
 export const fetchRoutine = createAsyncThunk("routine/fetch", async () => {
@@ -79,9 +88,11 @@ export const routineSlice = createSlice({
       .addCase(fetchRoutine.fulfilled, (state, action) => {
         state.blocks = action.payload;
         state.status = "idle";
+        state.loaded = true;
       })
       .addCase(fetchRoutine.rejected, (state) => {
         state.status = "failed";
+        state.loaded = true;
       })
       .addCase(createRoutineBlock.fulfilled, (state, action) => {
         state.blocks.push(action.payload);

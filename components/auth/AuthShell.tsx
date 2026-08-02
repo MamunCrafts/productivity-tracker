@@ -35,9 +35,9 @@ export function AuthShell({
   pendingLabel: string;
   children: React.ReactNode;
   onSubmit: (form: FormData) => Promise<string | null>;
-  switchPrompt: string;
-  switchLabel: string;
-  switchHref: string;
+  switchPrompt?: string;
+  switchLabel?: string;
+  switchHref?: string;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -107,21 +107,25 @@ export function AuthShell({
             </Button>
           </form>
 
-          {/* The same fading rule the colophon closes on. */}
-          <div
-            aria-hidden
-            className="mt-7 h-px bg-gradient-to-r from-transparent via-line to-transparent"
-          />
+          {switchPrompt && switchLabel && switchHref && (
+            <>
+              {/* The same fading rule the colophon closes on. */}
+              <div
+                aria-hidden
+                className="mt-7 h-px bg-gradient-to-r from-transparent via-line to-transparent"
+              />
 
-          <p className="mt-5 text-center text-sm text-ink-2">
-            {switchPrompt}{" "}
-            <Link
-              href={switchHref}
-              className="text-ink underline decoration-line-2 underline-offset-[3px] transition-colors hover:decoration-ink-2"
-            >
-              {switchLabel}
-            </Link>
-          </p>
+              <p className="mt-5 text-center text-sm text-ink-2">
+                {switchPrompt}{" "}
+                <Link
+                  href={switchHref}
+                  className="text-ink underline decoration-line-2 underline-offset-[3px] transition-colors hover:decoration-ink-2"
+                >
+                  {switchLabel}
+                </Link>
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>

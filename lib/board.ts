@@ -51,3 +51,25 @@ export function dropTarget(list: Task[], index: number): number {
 export function isTaskStatus(value: string): value is TaskStatus {
   return (TASK_STATUSES as string[]).includes(value);
 }
+
+/**
+ * The column one step either side of this one, or null at the ends.
+ *
+ * The board is a line — Todo, Doing, Done — so "move it along" is a step, not a
+ * choice from a list. This is what the phone's move buttons step through, since
+ * dragging a card to a column that is off-screen is not a gesture a thumb can
+ * make.
+ */
+export function adjacentStatus(
+  status: TaskStatus,
+  direction: -1 | 1
+): TaskStatus | null {
+  const index = TASK_STATUSES.indexOf(status);
+  if (index === -1) return null;
+  return TASK_STATUSES[index + direction] ?? null;
+}
+
+/** The label a column goes by, for a control that names where a card is headed. */
+export function columnLabel(status: TaskStatus): string {
+  return COLUMNS.find((c) => c.status === status)?.label ?? status;
+}

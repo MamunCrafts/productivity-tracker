@@ -15,9 +15,17 @@ interface TaskColumnProps {
   label: string;
   hint: string;
   tasks: Task[];
+  /** Below `sm` the board shows one column; the other two are dropped. */
+  hiddenOnPhone?: boolean;
 }
 
-export function TaskColumn({ status, label, hint, tasks }: TaskColumnProps) {
+export function TaskColumn({
+  status,
+  label,
+  hint,
+  tasks,
+  hiddenOnPhone = false,
+}: TaskColumnProps) {
   // The column itself is a drop target so an empty one — and the space below
   // the last card — still accepts a card.
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -25,10 +33,11 @@ export function TaskColumn({ status, label, hint, tasks }: TaskColumnProps) {
   return (
     <section
       className={cn(
-        // Each column is a full-width panel on a phone and scroll-snaps, so you
-        // swipe between three readable columns instead of squinting at three
-        // narrow ones.
-        "flex w-[86vw] shrink-0 snap-start flex-col rounded-xl border border-line bg-base/40 sm:w-72 lg:w-full lg:shrink"
+        // One column fills the phone — the switcher above chooses which. From
+        // `sm` the board becomes a scroller of fixed-width columns you swipe
+        // between, and from `lg` a plain three-up grid.
+        "w-full shrink-0 snap-start flex-col rounded-xl border border-line bg-base/40 sm:w-72 lg:w-full lg:shrink",
+        hiddenOnPhone ? "hidden sm:flex" : "flex"
       )}
       aria-label={`${label} column`}
     >

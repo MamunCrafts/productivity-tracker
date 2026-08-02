@@ -11,9 +11,6 @@ export default function LoginPage() {
       lede="Pick up where your last session left off."
       submitLabel="Sign in"
       pendingLabel="Signing in…"
-      switchPrompt="No account yet?"
-      switchLabel="Create one"
-      switchHref="/register"
       onSubmit={async (form) => {
         const result = await signIn("credentials", {
           email: form.get("email"),

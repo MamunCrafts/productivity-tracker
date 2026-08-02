@@ -20,6 +20,7 @@ import { startTimer } from "@/store/habitSlice";
 import { NoteBody } from "@/components/notes/BlockRenderer";
 import { Button } from "@/components/ui/button";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
+import { TagList } from "@/components/notes/TagList";
 import { HabitPicker } from "@/components/notes/HabitPicker";
 import { Shimmer } from "@/components/ui/shimmer";
 import { pathOf } from "@/lib/tree";
@@ -117,7 +118,7 @@ export default function NotePage() {
 
   if (missing) {
     return (
-      <div className="mx-auto max-w-3xl px-6 py-20 text-center">
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
         <p className="font-display text-2xl text-ink">Note not found</p>
         <p className="mt-2 text-ink-2">It may have been deleted.</p>
         <Button asChild variant="outline" className="mt-6">
@@ -130,7 +131,7 @@ export default function NotePage() {
   const title = note?.title ?? meta?.title;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-14 pb-28">
+    <div className="mx-auto max-w-6xl px-4 pb-28 pt-8 sm:px-6 sm:pt-14">
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-sm">
         <Link
           href="/notes"
@@ -314,7 +315,9 @@ export default function NotePage() {
                     onChange={(categoryId) =>
                       dispatch(updateNoteAsync({ id, patch: { categoryId } }))
                     }
-                    className="text-sm"
+                    // `text-base` below `sm`: iOS zooms in on a select under
+                    // 16px and does not zoom back out.
+                    className="text-base sm:text-sm"
                   />
                 </label>
 
@@ -328,24 +331,17 @@ export default function NotePage() {
                     onChange={(habitId) =>
                       dispatch(updateNoteAsync({ id, patch: { habitId } }))
                     }
-                    className="text-sm"
+                    // `text-base` below `sm`: iOS zooms in on a select under
+                    // 16px and does not zoom back out.
+                    className="text-base sm:text-sm"
                   />
                 </label>
               </div>
             )}
 
-            {meta && meta.tags.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-1.5">
-                {meta.tags.map((tag) => (
-                  <li
-                    key={tag}
-                    className="rounded-full border border-line bg-surface-2 px-2 py-0.5 text-[11px] text-ink-2"
-                  >
-                    {tag}
-                  </li>
-                ))}
-              </ul>
-            )}
+            {/* No cap here — the reader is the one place with room for a
+                note's whole vocabulary. */}
+            {meta && <TagList tags={meta.tags} className="mt-3" />}
           </header>
 
           <div className="mt-8">

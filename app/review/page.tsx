@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { useAppSelector } from "@/store/hooks";
 import { formatHours, weekSummary, FOCUS_RATINGS } from "@/lib/analytics";
+import { PageHeader, PageShell } from "@/components/PageFrame";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ShimmerStat } from "@/components/ui/shimmer";
@@ -41,39 +42,44 @@ export default function ReviewPage() {
   const met = week.perHabit.filter((h) => h.met);
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-14 pb-28">
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-4xl font-medium leading-tight text-ink">
-            Weekly review
-          </h1>
-          <p className="mt-2 text-ink-2">
+    <PageShell width="4xl">
+      <PageHeader
+        title="Weekly review"
+        lead={
+          <>
             {format(week.start, "d MMM")} – {format(week.end, "d MMM yyyy")}
             {offset === 0 && <span className="ml-2 text-ink-3">(this week)</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setOffset((o) => o + 1)}
-            title="Earlier week"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Earlier week</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={offset === 0}
-            onClick={() => setOffset((o) => Math.max(o - 1, 0))}
-            title="Later week"
-          >
-            <ChevronRight className="h-4 w-4" />
-            <span className="sr-only">Later week</span>
-          </Button>
-        </div>
-      </header>
+          </>
+        }
+        action={
+          // Compact on a phone, where the pair shares the header's first row
+          // with a two-word title.
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 sm:h-10 sm:w-10"
+              onClick={() => setOffset((o) => o + 1)}
+              title="Earlier week"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Earlier week</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 sm:h-10 sm:w-10"
+              disabled={offset === 0}
+              onClick={() => setOffset((o) => Math.max(o - 1, 0))}
+              title="Later week"
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Later week</span>
+            </Button>
+          </div>
+        }
+        className="sm:mb-8"
+      />
 
       {status === "loading" ? (
         <div className="grid gap-4 sm:grid-cols-3">
@@ -206,6 +212,6 @@ export default function ReviewPage() {
           </Card>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

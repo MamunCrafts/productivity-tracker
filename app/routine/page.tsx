@@ -10,6 +10,7 @@ import { DayColumn } from "@/components/routine/DayColumn";
 import { RoutineForm } from "@/components/routine/RoutineForm";
 import { ShimmerRows } from "@/components/ui/shimmer";
 import { describeRepeat, formatDuration } from "@/lib/routine";
+import { to12Hour } from "@/lib/time";
 
 /**
  * The routine: what the next two days are shaped like.
@@ -188,7 +189,7 @@ function WeekSummary({
             {sorted.map((block) => (
               <tr key={block.id} className="border-b border-line last:border-0">
                 <td className="whitespace-nowrap py-2 pr-3 font-mono tnum text-ink-2">
-                  {block.startTime}
+                  {to12Hour(block.startTime)}
                 </td>
                 <td className="py-2 pr-3 text-ink">{block.label}</td>
                 <td className="py-2 pr-3 text-ink-2">{describeRepeat(block.days)}</td>

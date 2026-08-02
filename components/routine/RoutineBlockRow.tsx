@@ -14,6 +14,7 @@ import {
   endTime,
   formatDuration,
 } from "@/lib/routine";
+import { to12Hour } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 /**
@@ -72,12 +73,16 @@ export function RoutineBlockRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <time className="font-mono text-sm tnum text-ink">{block.startTime}</time>
+          {/* Stored 24-hour, written 12-hour. `to12Hour` is the only place that
+              conversion happens, so the strip and the routine can't drift. */}
+          <time className="font-mono text-sm tnum text-ink">
+            {to12Hour(block.startTime)}
+          </time>
           <span aria-hidden className="text-ink-3">
             –
           </span>
           <time className="font-mono text-sm tnum text-ink-2">
-            {endTime(block)}
+            {to12Hour(endTime(block))}
           </time>
           {crossesMidnight(block) && (
             // Otherwise an end time earlier than the start reads as a typo.

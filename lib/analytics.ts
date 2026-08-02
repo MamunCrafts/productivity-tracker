@@ -15,11 +15,23 @@ export const toHours = (seconds: number) => seconds / 3600;
 
 export type RangeKey = "30d" | "90d" | "365d" | "all";
 
-export const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
-  { key: "30d", label: "30 days", days: 30 },
-  { key: "90d", label: "90 days", days: 90 },
-  { key: "365d", label: "12 months", days: 365 },
-  { key: "all", label: "All time", days: null },
+/**
+ * `short` is what the filter shows below `sm`. Four full labels can't sit in a
+ * 360px row without either scrolling sideways or dropping under the 44px touch
+ * minimum, and the abbreviations are unambiguous in context — the control is
+ * labelled "Date range", so "30d" can only mean one thing. The full label stays
+ * the accessible name at every width.
+ */
+export const RANGES: {
+  key: RangeKey;
+  label: string;
+  short: string;
+  days: number | null;
+}[] = [
+  { key: "30d", label: "30 days", short: "30d", days: 30 },
+  { key: "90d", label: "90 days", short: "90d", days: 90 },
+  { key: "365d", label: "12 months", short: "12m", days: 365 },
+  { key: "all", label: "All time", short: "All", days: null },
 ];
 
 /**

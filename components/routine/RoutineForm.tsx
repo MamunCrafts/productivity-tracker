@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { clockOf, formatDuration, minutesOf } from "@/lib/routine";
+import { to12Hour } from "@/lib/time";
 
 /** A new block defaults to a weekday morning hour — the commonest slot to add first. */
 const EMPTY = {
@@ -120,8 +121,10 @@ export function RoutineForm({
   }
 
   // Shown live under the time fields so the end of the slot is never a
-  // calculation you do in your head.
-  const ends = clockOf(minutesOf(form.startTime) + form.durationMinutes);
+  // calculation you do in your head. The `<input type="time">` above it renders
+  // in whatever the browser locale uses — am/pm on most — while its value stays
+  // 24-hour, so this line matches what the field shows without any extra work.
+  const ends = to12Hour(clockOf(minutesOf(form.startTime) + form.durationMinutes));
 
   return (
     <Dialog open={open} onOpenChange={openChange}>

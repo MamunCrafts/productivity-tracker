@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { FocusTimer } from "@/components/FocusTimer";
 import { Colophon } from "@/components/Colophon";
 import { ChromeOnly } from "@/components/ChromeOnly";
+import { StatusBar } from "@/components/statusbar/StatusBar";
 import { auth } from "@/auth";
 import { THEME_SCRIPT } from "@/lib/theme";
 
@@ -72,6 +73,12 @@ export default async function RootLayout({
           <ChromeOnly>
             <div className="relative z-10">
               <Nav signedIn={Boolean(session?.user)} />
+              {/* Below the nav rather than inside it: the nav is sticky and
+                  already carries six tabs and two controls, and ambient
+                  context has no business travelling down the page with the
+                  destinations. Inside `ChromeOnly` so the sign-in screens
+                  stay bare. */}
+              <StatusBar />
             </div>
           </ChromeOnly>
           {/* No client-side gate: middleware turns signed-out requests away

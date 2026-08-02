@@ -61,6 +61,8 @@ export default function Home() {
         </p>
       </header>
 
+      {/* The filter takes the full row on a phone, where `ExportButton` renders
+          nothing; from `sm` the two share it. */}
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <RangeFilter value={range} onChange={setRange} />
         <ExportButton />

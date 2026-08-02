@@ -2,42 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  BookText,
-  KanbanSquare,
-  ListChecks,
-  LogIn,
-  LogOut,
-  NotebookPen,
-  UserPlus,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { NavMenu } from "@/components/NavMenu";
 import { Mark } from "@/components/Mark";
+import { AUTH_LINKS, LINKS, isActiveHref } from "@/components/navLinks";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
-  { href: "/", label: "Analytics", Icon: BarChart3 },
-  { href: "/habits", label: "Habits", Icon: ListChecks },
-  { href: "/tasks", label: "Board", Icon: KanbanSquare },
-  { href: "/notes", label: "Notes", Icon: BookText },
-  { href: "/review", label: "Review", Icon: NotebookPen },
-];
-
 /**
- * Signed out, the two auth destinations take the place of the sign-out
- * control. They're kept rather than dropped so that exempting a route from the
- * middleware matcher later — a public landing page, say — leaves a working way
- * in; as things stand middleware means a signed-out visitor never reaches a
- * page that renders this nav. Unconditional links would also be seven items on
- * a 360px viewport.
+ * From `sm` up this is the whole nav: wordmark, five tabs, and the controls
+ * pushed right. Below it, everything but the wordmark collapses into
+ * `NavMenu` — five tabs and two controls overran the 360px viewport, and each
+ * tab sat under the 44px touch minimum.
  */
-const AUTH_LINKS = [
-  { href: "/login", label: "Login", Icon: LogIn },
-  { href: "/register", label: "Register", Icon: UserPlus },
-];
-
 export function Nav({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
 
@@ -49,35 +27,30 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
           className="flex shrink-0 items-center gap-2 font-display text-base text-ink"
         >
           <Mark className="h-4 w-4 shrink-0 text-amber" />
-          {/* The wordmark is the first thing to go on a phone — the three
-              destinations matter more than the name of the app you're in. */}
-          <span className="hidden sm:inline">Productivity Tracker</span>
-          <span className="sr-only sm:hidden">Productivity Tracker</span>
+          {/* The wordmark used to be the first thing cut on a phone, because
+              the destinations mattered more than the name of the app you were
+              in. With those behind the menu button there's room for it, and a
+              bar holding nothing but a mark and a hamburger reads unfinished. */}
+          <span>Productivity Tracker</span>
         </Link>
-        <div className="flex items-center gap-1">
+
+        <div className="hidden items-center gap-1 sm:flex">
           {LINKS.map(({ href, label, Icon }) => {
-            // Notes has children (/notes/import, /notes/[id]); the tab has to
-            // stay lit inside them, so only "/" matches exactly.
-            const active =
-              href === "/" ? pathname === "/" : pathname.startsWith(href);
+            const active = isActiveHref(href, pathname);
             return (
               <Link
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors sm:gap-2 sm:px-3",
+                  "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   active
                     ? "bg-surface-2 text-ink"
                     : "text-ink-2 hover:bg-surface hover:text-ink"
                 )}
               >
-                <Icon className="h-3.5 w-3.5 shrink-0" />
-                {/* Four destinations don't fit a 360px phone. Only the one
-                    you're on spells itself out; the rest ride on their icon
-                    until there's room. */}
-                <span className={cn(!active && "hidden sm:inline")}>{label}</span>
-                {!active && <span className="sr-only sm:hidden">{label}</span>}
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {label}
               </Link>
             );
           })}
@@ -86,30 +59,32 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
         {/* Pushed right, away from the destinations: leaving isn't one of
             them. */}
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          <ThemeToggle />
-          {signedIn ? (
-            <button
-              type="button"
-              onClick={() => signOut({ redirectTo: "/login" })}
-              className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:gap-2 sm:px-3"
-            >
-              <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="hidden sm:inline">Sign out</span>
-              <span className="sr-only sm:hidden">Sign out</span>
-            </button>
-          ) : (
-            AUTH_LINKS.map(({ href, label, Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:gap-2 sm:px-3"
+          <div className="hidden items-center gap-1 sm:flex">
+            <ThemeToggle />
+            {signedIn ? (
+              <button
+                type="button"
+                onClick={() => signOut({ redirectTo: "/login" })}
+                className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink"
               >
-                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                <span className="hidden sm:inline">{label}</span>
-                <span className="sr-only sm:hidden">{label}</span>
-              </Link>
-            ))
-          )}
+                <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Sign out
+              </button>
+            ) : (
+              AUTH_LINKS.map(({ href, label, Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-ink-2 transition-colors hover:bg-surface hover:text-ink"
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  {label}
+                </Link>
+              ))
+            )}
+          </div>
+
+          <NavMenu signedIn={signedIn} />
         </div>
       </div>
     </nav>

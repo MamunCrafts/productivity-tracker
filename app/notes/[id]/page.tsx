@@ -79,6 +79,28 @@ export default function NotePage() {
   const toc = useMemo(() => tableOfContents(blocks), [blocks]);
   const breadcrumb = pathOf(categories, meta?.categoryId ?? null);
 
+  // Arriving at `/notes/[id]#slug` directly — a bookmark, or a chapter link
+  // shared out of the note — lands before the body does: blocks are fetched
+  // into Redux after mount, so the browser resolves the fragment against a
+  // page whose headings don't exist yet and simply stays at the top. Honour
+  // it once the headings are actually rendered. In-page clicks don't need
+  // this; the browser handles those natively.
+  const jumped = useRef(false);
+  useEffect(() => {
+    if (jumped.current || blocks.length === 0) return;
+    const raw = window.location.hash.slice(1);
+    if (!raw) return;
+    jumped.current = true;
+    // Non-ASCII slugs (these notes are largely Bengali) arrive percent-encoded
+    // from a typed or copied URL, but a stray `%` would throw — fall back.
+    let slug = raw;
+    try {
+      slug = decodeURIComponent(raw);
+    } catch {}
+    // `scroll-mt-20` on the heading keeps the jump clear of the sticky nav.
+    document.getElementById(slug)?.scrollIntoView();
+  }, [blocks]);
+
   function download() {
     if (!note) return;
     // The original file, byte for byte — the reason `content` is kept

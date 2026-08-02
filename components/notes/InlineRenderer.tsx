@@ -54,12 +54,23 @@ function InlineNode({ node }: { node: Inline }) {
         </code>
       );
 
-    case "link":
+    case "link": {
+      /**
+       * A `#slug` href points at a heading in this same note — the সূচিপত্র
+       * most imported files open with. It has to navigate in place: opening
+       * it in a new tab loads a second copy of the page and never scrolls,
+       * which reads as a click that reloaded and did nothing.
+       *
+       * Headings render with `id={slug}` and `scroll-mt-20` (BlockRenderer),
+       * so the browser's own fragment jump lands them clear of the nav. Only
+       * links that actually leave the note get `_blank`.
+       */
+      const internal = node.href.startsWith("#");
       return (
         <a
           href={node.href}
-          target="_blank"
-          rel="noreferrer noopener"
+          target={internal ? undefined : "_blank"}
+          rel={internal ? undefined : "noreferrer noopener"}
           // Amber is reserved for focus and primary actions, so a link gets
           // the underline rather than the accent colour.
           className="underline decoration-line-2 underline-offset-[3px] transition-colors hover:decoration-ink-2"
@@ -67,6 +78,7 @@ function InlineNode({ node }: { node: Inline }) {
           <Inlines nodes={node.c} />
         </a>
       );
+    }
 
     case "img":
       return isRenderableImage(node.url) ? (

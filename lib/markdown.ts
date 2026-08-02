@@ -90,11 +90,26 @@ function parseTagList(value: string): string[] {
  * Slugs
  * ------------------------------------------------------------------ */
 
+/**
+ * `\p{M}` is load-bearing, not decoration.
+ *
+ * Combining marks are their own Unicode category — they are not `\p{L}`. In
+ * Bengali (and Devanagari, Thai, Arabic, Vietnamese…) the vowel signs *are*
+ * marks, so keeping only letters and numbers shreds a word into its bare
+ * consonants: `কী এবং কীভাবে` became `ক-এব-ক-ভ-ব`. That broke anchors twice
+ * over — the id was mangled, and it no longer matched the `#heading` hrefs in
+ * a file's own table of contents, which every generator writes GitHub-style
+ * (marks kept). With marks retained this agrees with github-slugger on every
+ * heading tested, so an imported TOC resolves.
+ *
+ * It also cost uniqueness: distinct headings could collapse to the same
+ * stripped form and quietly collide into `-1` suffixes.
+ */
 export function slugify(text: string): string {
   return (
     text
       .toLowerCase()
-      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/[^\p{L}\p{N}\p{M}]+/gu, "-")
       .replace(/^-+|-+$/g, "") || "section"
   );
 }

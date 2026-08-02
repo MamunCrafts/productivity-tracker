@@ -33,11 +33,15 @@ The README describes "Tasks"; the code has no such concept. The two real entitie
 
 - **Category** — a folder for notes. Stored **flat** with a `parentId` (null at the root) and walked into a tree at render time by `lib/tree.ts`, so moving a folder is one write rather than rewriting a path on every descendant. Arbitrary depth.
 
+- **RoutineBlock** — one recurring slot in a day: `startTime` (`HH:MM`, 24-hour, so a day sorts as a string), `durationMinutes`, and `days`, an array of `Date.getDay()` indices. There is **no row per occurrence** — a block that repeats every day is one document, and which days it lands on is derived at render time by `blocksForDay` in `lib/routine.ts`, the same way folders are derived from a flat table. `habitId` is nullable like a task's. Nothing in analytics derives from a routine — it is the intention, a `TimeLog` is what happened — so blocks hard-delete.
+
 All of them use a client-generated `crypto.randomUUID()` string in an application-level **`id`** field. Mongo's `_id` is never used for lookup — every query, filter, and route param is on `id`. New models should follow this.
 
 ## Architecture
 
-**Five top-level routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/tasks` is the Kanban board (`app/tasks/page.tsx`), `/notes` is the markdown shelf (`app/notes/`, with `/notes/import` and `/notes/[id]` under it), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them — below `sm` only the current destination shows its label, because five labels overflow a 360px viewport. Nav marks a tab active with `startsWith`, not equality, so `/notes` stays lit inside its children; `/` is the one exact match.
+**Six top-level routes.** `/` is the analytics overview (`app/page.tsx`), `/habits` is the working list (`app/habits/page.tsx`), `/routine` is the daily schedule (`app/routine/page.tsx`), `/tasks` is the Kanban board (`app/tasks/page.tsx`), `/notes` is the markdown shelf (`app/notes/`, with `/notes/import` and `/notes/[id]` under it), `/review` is the weekly review (`app/review/page.tsx`). `components/Nav.tsx` links them — below `sm` the whole strip collapses into `NavMenu`, because the labels overflow a 360px viewport. Nav marks a tab active with `startsWith`, not equality, so `/notes` stays lit inside its children; `/` is the one exact match.
+
+**`/routine` shows two days and stores a week.** The page renders today and tomorrow only — the question it answers is "what is next" — while a block's `days` array spans the whole week, so one edit changes every day it recurs on. `lib/routine.ts` holds every derivation as a pure function of `(blocks, date)` (`blocksForDay`, `endTime`, `describeRepeat`, `overlappingIds`, `scheduledMinutes`) and imports nothing but the types, so the form, the day column and the row can all use it. Add scheduling logic there, not in a component. The full pattern stays reachable per-row via `describeRepeat` and in the summary table at the foot, so the narrow window never hides a block. Overlaps are surfaced, never blocked — two things genuinely can share a half hour.
 
 `/login` and `/register` sit outside that set and outside the app shell: `components/ChromeOnly.tsx` returns null for them, so nav, docked timer and colophon don't render. It gates on the **route only**, never on signed-in state — the server can't read `localStorage`, so gating on that would strip the nav from every page's server-rendered HTML and let it pop in after hydration on every load.
 
@@ -45,7 +49,7 @@ All of them use a client-generated `crypto.randomUUID()` string in an applicatio
 
 - **The config is split in two, and that split is load-bearing.** `auth.config.ts` is Edge-safe and holds the `authorized` callback; `auth.ts` adds the Credentials provider, which needs mongoose and bcrypt. `middleware.ts` may only import the former — the Edge runtime has neither of those packages.
 - **Route protection lives entirely in middleware**, which is why no API route repeats the check. The matcher covers everything except `api/auth` (Auth.js's endpoints *and* `/api/auth/register`, which must work while signed out) and static assets. A signed-out request never reaches a handler or gets any markup.
-- **There is exactly one account.** `POST /api/auth/register` returns 409 once a user exists. Nothing else in the schema is scoped to a user — no `Habit`, `TimeLog`, `Task`, `Note` or `Category` carries a `userId` — so a second account would see the first one's data. Adding real multi-user means a `userId` on all five models plus a filter on every query, and a backfill for existing rows.
+- **There is exactly one account.** `POST /api/auth/register` returns 409 once a user exists. Nothing else in the schema is scoped to a user — no `Habit`, `TimeLog`, `Task`, `Note`, `Category` or `RoutineBlock` carries a `userId` — so a second account would see the first one's data. Adding real multi-user means a `userId` on all six models plus a filter on every query, and a backfill for existing rows.
 - `passwordHash` is `select: false`, so it is absent unless a query asks for it. Only `auth.ts` does.
 - Sign-in failures are deliberately indistinguishable: a wrong password and an unknown email give the same message, and `authorize` compares against a constant hash when no user matches so both take the same time. Response timing otherwise reveals which emails exist.
 - `AUTH_SECRET` is required in `.env` alongside `DATABASE_URL`; without it Auth.js throws at startup.
@@ -63,7 +67,7 @@ All of them use a client-generated `crypto.randomUUID()` string in an applicatio
 - **The reader drops a leading `# H1` that matches the note's title** (`dropRedundantTitle`), because the page already prints the title above the body. Matched at render, not stripped at import: `content` stays intact, so renaming a note brings its original heading back rather than leaving it headless.
 - Relative image paths (`./img/x.png`) can't resolve — the folder was never imported — so they render as a placeholder rather than a broken image.
 
-**Three Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
+**Four Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
 
 **The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `FocusTimer.tsx` renders from the layout so it survives route changes.
 
@@ -89,9 +93,11 @@ Note that deleting a habit leaves any task pointing at it with a dangling `habit
 | `/api/auth/register` | `POST` — creates the one account; 409 if one exists |
 | `/api/categories` | `GET` (flat), `POST` |
 | `/api/categories/[id]` | `PATCH` (rejects cycles), `DELETE` (lifts contents to the parent) |
+| `/api/routines` | `GET` (all, sorted by `startTime`), `POST` |
+| `/api/routines/[id]` | `PATCH`, `DELETE` (hard) |
 | `/api/export` | `GET` — `?format=csv\|json`, sets `Content-Disposition` |
 
-All five `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
+All six `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the top of each) so a client can't reassign `id` or rewrite `createdAt`, and all map Mongoose `ValidationError` to 400 rather than letting it surface as a 500. On Next 16, dynamic route `params` is a Promise — `{ params }: { params: Promise<{ id: string }> }`, then `await params`.
 
 **Changing a Mongoose schema no longer needs a dev-server restart** (as of 2026-08-01). It used to: the bare `mongoose.models.X || mongoose.model(...)` guard handed back a model compiled from the *old* schema, because `mongoose.models` lives on the mongoose singleton, which sits on `global` specifically so it survives hot reload — so any field added since was silently stripped on write, with no error, until the Node process was killed. `registerModel` in `lib/db.ts` now drops the cached model in development before rebuilding it, so saving the file is enough. Production keeps the cache untouched, since nothing is re-evaluated there.
 

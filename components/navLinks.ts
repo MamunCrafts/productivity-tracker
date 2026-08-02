@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookText,
+  CalendarClock,
   KanbanSquare,
   ListChecks,
   LogIn,
@@ -16,6 +17,9 @@ import {
 export const LINKS = [
   { href: "/", label: "Analytics", Icon: BarChart3 },
   { href: "/habits", label: "Habits", Icon: ListChecks },
+  // Sits next to Habits because it is the same subject in the other tense:
+  // Habits is what you are working on, Routine is when.
+  { href: "/routine", label: "Routine", Icon: CalendarClock },
   { href: "/tasks", label: "Board", Icon: KanbanSquare },
   { href: "/notes", label: "Notes", Icon: BookText },
   { href: "/review", label: "Review", Icon: NotebookPen },

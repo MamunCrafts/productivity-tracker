@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 /**
  * Every destination on a phone, behind one button.
  *
- * Five icon tabs plus the theme and sign-out controls came to roughly 376px of
+ * The icon tabs plus the theme and sign-out controls came to more than 360px of
  * chrome on the 360px viewport this app is designed for, and each tab was a
  * ~34px target with no gap to its neighbour. Collapsing them trades a tap for a
  * row that spells itself out and clears the 44px minimum.

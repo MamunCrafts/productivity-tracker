@@ -1,4 +1,5 @@
 export * from "./notes";
+export * from "./routine";
 
 /**
  * The single account. `passwordHash` is deliberately absent — it never leaves

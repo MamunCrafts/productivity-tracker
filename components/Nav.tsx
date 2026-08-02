@@ -11,9 +11,9 @@ import { AUTH_LINKS, LINKS, isActiveHref } from "@/components/navLinks";
 import { cn } from "@/lib/utils";
 
 /**
- * From `sm` up this is the whole nav: wordmark, five tabs, and the controls
+ * From `sm` up this is the whole nav: wordmark, six tabs, and the controls
  * pushed right. Below it, everything but the wordmark collapses into
- * `NavMenu` — five tabs and two controls overran the 360px viewport, and each
+ * `NavMenu` — the tabs and two controls overran the 360px viewport, and each
  * tab sat under the 44px touch minimum.
  */
 export function Nav({ signedIn }: { signedIn: boolean }) {

@@ -9,7 +9,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Circle } from "lucide-react";
+import {
+  Ban,
+  CheckCircle2,
+  Circle,
+  Footprints,
+  GlassWater,
+  StretchHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ScaleSlider } from "@/components/ui/scale-slider";
@@ -52,6 +59,18 @@ const SCALES = [
 ] as const;
 
 type ScaleKey = (typeof SCALES)[number]["key"];
+
+/**
+ * What a break is actually for. Named rather than left to "take a break",
+ * because the default break is a phone, and a phone is not rest — it is the
+ * same eyes doing the same thing at a faster cadence. Three things you can do
+ * standing up, in the order they cost effort.
+ */
+const BREAK_MOVES = [
+  { icon: Footprints, label: "হাঁটা" },
+  { icon: GlassWater, label: "পানি" },
+  { icon: StretchHorizontal, label: "Stretch" },
+] as const;
 
 /**
  * The two questions worth asking at the end of a session: what you did, and how
@@ -241,6 +260,42 @@ export function SessionWrapUp({
               />
             ))}
           </fieldset>
+
+          {/* The last thing read before the dialog closes, because the minute
+              after it closes is the break — and the default break is a phone,
+              which rests nothing. Deliberately not amber and not pressable:
+              amber means focus and the primary action, and this is neither, it
+              is a note about what to do once you've stood up. */}
+          <div className="space-y-2 md:col-span-2">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-3">
+              Break
+            </p>
+            <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface-2/50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              {/* The verdict pair, used as a verdict: this is what a break was
+                  and wasn't, not where to look or what to press — amber still
+                  owns that. Colour is never the only channel, so the red side
+                  carries a struck-through circle and the word "নয়", and the
+                  green side keeps an icon per move. */}
+              <p className="flex items-center gap-1.5 text-sm text-danger-ink">
+                <Ban className="h-4 w-4 shrink-0" aria-hidden />
+                Reels নয়।
+              </p>
+              {/* Wraps rather than scrolls — three short items fit 360px in one
+                  row, and a reminder you have to swipe to finish reading is
+                  one you don't read. */}
+              <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {BREAK_MOVES.map(({ icon: Icon, label }) => (
+                  <li
+                    key={label}
+                    className="flex items-center gap-1.5 text-sm text-success"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
 
           <DialogFooter className="md:col-span-2 md:border-t md:border-line md:pt-5">
             {/* Red at rest, not only on hover: this is the one control here

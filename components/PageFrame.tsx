@@ -103,9 +103,15 @@ export function PageHeader({
       {lead && (
         // Supporting text, so it drops a step on the phone rather than sitting
         // at the same size as the body of every card below it.
+        //
+        // `text-lead`, not `text-ink-2`: the lead is the one line that has to
+        // hold its weight against a 4xl display title in both themes, and
+        // `ink-2` is shared with every muted label in the app. The token starts
+        // as a copy of it (see `--lead` in globals.css) so this is a no-op
+        // today and a one-line change per theme tomorrow.
         <div
           className={cn(
-            "col-start-1 row-start-2 text-sm text-ink-2 sm:text-base",
+            "col-start-1 row-start-2 text-sm text-lead sm:text-base",
             action && "col-span-2 sm:col-span-1"
           )}
         >

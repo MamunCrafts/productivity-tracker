@@ -28,6 +28,16 @@
   --ink-2: 38 12% 60%;
   --ink-3: 36 11% 39%;
 
+  /*
+    The sentence under a page title, and only that. It starts life as a copy of
+    `ink-2` rather than an alias of it, because the whole point is that the two
+    themes can be tuned apart: a lead that reads right on a dark surface and one
+    that reads right on paper are not the same value, and `ink-2` is worn by
+    every muted label in the app, so nudging it here would move all of them.
+    Declare the figure you measured beside it. Currently 6.33:1 on the card.
+  */
+  --lead: 38 12% 60%;
+
   /* The single accent: lamp amber. Reserved for focus + the primary action. */
   --amber: 32 71% 63%;
   --amber-deep: 30 62% 44%;
@@ -107,6 +117,10 @@
   --ink-2: 32 13% 38%;
   --ink-3: 32 10% 51%;
 
+  /* The page lead on paper. 5.86:1 on the card — tune this one freely; it is
+     read by nothing but `PageHeader`'s lead. */
+  --lead: 32 13% 38%;
+
   --amber: 30 74% 35%;
   --amber-deep: 28 72% 27%;
 
@@ -131,6 +145,7 @@
   --color-ink: hsl(var(--ink));
   --color-ink-2: hsl(var(--ink-2));
   --color-ink-3: hsl(var(--ink-3));
+  --color-lead: hsl(var(--lead));
   --color-amber: hsl(var(--amber));
   --color-amber-deep: hsl(var(--amber-deep));
   --color-danger: hsl(var(--danger));

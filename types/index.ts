@@ -41,7 +41,28 @@ export interface TimeLog {
   durationSeconds: number;
   date: string; // YYYY-MM-DD
   note: string; // What actually happened in the session
-  focusRating: number | null; // 1-5, self-reported focus quality
+  /**
+   * The one thing to pick up next, written while the session is still in your
+   * head. Empty when it wasn't answered. Specific is the whole point — "backend
+   * continue" costs you the first ten minutes of the next session that a named
+   * endpoint doesn't.
+   */
+  nextAction: string;
+  /**
+   * 1-5, self-reported focus quality. Legacy: the wrap-up now writes the three
+   * 1-10 scores below instead, and nothing sets this on a new log. It stays
+   * readable so sessions rated under the old scale keep their rating — read it
+   * through `focusOutOf10` in `lib/analytics.ts`, never raw beside a score.
+   */
+  focusRating: number | null;
+  /**
+   * The three 1-10 scales the wrap-up collects, `null` when a slider was left
+   * untouched. Separate axes on purpose: a session can be deeply focused and
+   * still produce nothing, and averaging that into one number hides both.
+   */
+  focusScore: number | null;
+  energyScore: number | null;
+  outputScore: number | null;
 }
 
 /** Fields a client may change after creation. Anything else is ignored server-side. */
@@ -64,7 +85,17 @@ export type HabitPatch = Partial<
 >;
 
 export type TimeLogPatch = Partial<
-  Pick<TimeLog, "durationSeconds" | "date" | "note" | "focusRating">
+  Pick<
+    TimeLog,
+    | "durationSeconds"
+    | "date"
+    | "note"
+    | "nextAction"
+    | "focusRating"
+    | "focusScore"
+    | "energyScore"
+    | "outputScore"
+  >
 >;
 
 /** The three Kanban columns. The board has no user-defined columns by design. */

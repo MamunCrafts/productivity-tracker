@@ -14,6 +14,10 @@ export const STALE_AFTER_HOURS = 12;
 function isActiveTimer(value: unknown): value is ActiveTimer {
   if (!value || typeof value !== "object") return false;
   const t = value as Record<string, unknown>;
+  // `taskId` is deliberately not required: a session stored before cards could
+  // be attached is still a valid session, and rejecting it would throw away a
+  // running timer on the first refresh after the field landed. `readStoredTimer`
+  // fills the null in.
   return (
     typeof t.habitId === "string" &&
     typeof t.startTime === "string" &&
@@ -43,7 +47,7 @@ export function readStoredTimer(): ActiveTimer | null {
       return null;
     }
 
-    return parsed;
+    return { ...parsed, taskId: parsed.taskId ?? null };
   } catch {
     return null;
   }

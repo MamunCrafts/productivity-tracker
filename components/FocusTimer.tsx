@@ -10,6 +10,7 @@ import {
   resumeWork,
   StopTimerInput,
 } from "@/store/habitSlice";
+import { createTask, moveTaskAsync } from "@/store/taskSlice";
 import { Button } from "@/components/ui/button";
 import { Square, Maximize2, Minimize2, Coffee, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,6 +91,7 @@ export function FocusTimer() {
 function Session() {
   const activeTimer = useAppSelector((state) => state.habit.activeTimer);
   const habits = useAppSelector((state) => state.habit.habits);
+  const tasks = useAppSelector((state) => state.task.tasks);
   const dispatch = useAppDispatch();
 
   const [immersive, setImmersive] = useState(false);
@@ -109,6 +111,12 @@ function Session() {
   if (!activeTimer) return null;
 
   const habit = habits.find((h) => h.id === activeTimer.habitId);
+  // The card picked in the briefing. Looked up rather than carried along, so a
+  // card renamed, finished or deleted on the board mid-session reads correctly
+  // here instead of showing a stale copy.
+  const targetTask = activeTimer.taskId
+    ? tasks.find((t) => t.id === activeTimer.taskId)
+    : undefined;
   const color = habit?.color ?? "hsl(var(--amber))";
   const cadence = CADENCES.find((c) => c.key === cadenceKey) ?? CADENCES[0];
   const onBreak = activeTimer.phase === "break";
@@ -136,8 +144,42 @@ function Session() {
 
   const save = (input: StopTimerInput) => {
     dispatch(stopTimerAsync(input));
+
+    // The next action becomes a card in Todo, carrying the session's habit —
+    // written down but only inside the log, it is a note nobody reads; on the
+    // board it is the thing you pick up. The log keeps its own copy, so the
+    // session still records what you meant to do next even if the card is
+    // later renamed or deleted.
+    const nextAction = input.nextAction?.trim();
+    if (nextAction) {
+      dispatch(
+        createTask({
+          title: nextAction,
+          notes: `Next action from a session on ${habit?.title ?? "a habit"}.`,
+          habitId: activeTimer.habitId,
+          status: "Todo",
+          dueDate: null,
+        })
+      );
+    }
+
     setWrapUpOpen(false);
     setImmersive(false);
+  };
+
+  /**
+   * The tick in the wrap-up. Done lands at the top of its column and Doing
+   * takes it back, so an accidental tap costs one more tap — `moveTaskAsync`
+   * stamps and clears `completedAt` on the way in and out.
+   */
+  const toggleTargetDone = () => {
+    if (!targetTask) return;
+    const status = targetTask.status === "Done" ? "Doing" : "Done";
+    const highest = Math.min(
+      0,
+      ...tasks.filter((t) => t.status === status).map((t) => t.order)
+    );
+    dispatch(moveTaskAsync({ id: targetTask.id, status, order: highest - 1 }));
   };
 
   const discard = () => {
@@ -375,6 +417,12 @@ function Session() {
         onOpenChange={setWrapUpOpen}
         habitTitle={habit?.title ?? "this habit"}
         duration={humanDuration(workSeconds)}
+        task={
+          targetTask
+            ? { title: targetTask.title, done: targetTask.status === "Done" }
+            : undefined
+        }
+        onToggleTaskDone={toggleTargetDone}
         onSave={save}
         onDiscard={discard}
       />

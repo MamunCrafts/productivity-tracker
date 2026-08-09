@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { ChartCard, DataTable, EmptyPlot, VizTooltip } from "./ChartCard";
 import { useViz } from "@/components/theme/useViz";
-import { FOCUS_RATINGS } from "@/lib/analytics";
+import { focusLabel } from "@/lib/analytics";
 
 type Row = { hours: number; label: string; rating: number; sessions: number };
 
@@ -33,7 +33,7 @@ export function FocusQualityChart({ data }: { data: Row[] }) {
           <p className="py-6 text-sm text-ink-3">No rated sessions in this range.</p>
         ) : (
           <DataTable
-            columns={["Session length", "Average focus", "Sessions"]}
+            columns={["Session length", "Average focus /10", "Sessions"]}
             rows={data.map((d) => [d.label, d.rating.toFixed(2), d.sessions])}
           />
         )
@@ -59,24 +59,21 @@ export function FocusQualityChart({ data }: { data: Row[] }) {
                 tickLine={false}
                 axisLine={false}
                 width={48}
-                domain={[0, 5]}
-                ticks={[1, 2, 3, 4, 5]}
+                domain={[0, 10]}
+                ticks={[2, 4, 6, 8, 10]}
               />
               <Tooltip
                 cursor={{ fill: "rgba(255,255,255,0.04)" }}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const row = payload[0].payload as Row;
-                  const nearest = FOCUS_RATINGS.find(
-                    (r) => r.value === Math.round(row.rating)
-                  );
                   return (
                     <VizTooltip
                       label={`${row.label} sessions · ${row.sessions} rated`}
                       rows={[
                         {
-                          name: nearest ? nearest.label.toLowerCase() : "average focus",
-                          value: row.rating.toFixed(1),
+                          name: focusLabel(row.rating).toLowerCase(),
+                          value: `${row.rating.toFixed(1)}/10`,
                           color: viz.accent,
                         },
                       ]}

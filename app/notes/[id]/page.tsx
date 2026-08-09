@@ -16,7 +16,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteNoteAsync, fetchNote, updateNoteAsync } from "@/store/noteSlice";
-import { startTimer } from "@/store/habitSlice";
+import { useFocusBriefing } from "@/components/FocusBriefing";
 import { NoteBody } from "@/components/notes/BlockRenderer";
 import { Button } from "@/components/ui/button";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
@@ -58,6 +58,7 @@ export default function NotePage() {
   const isRunning = habit ? activeTimer?.habitId === habit.id : false;
   const [missing, setMissing] = useState(false);
   const [moving, setMoving] = useState(false);
+  const { requestFocus, briefing } = useFocusBriefing();
   const [confirming, setConfirming] = useState(false);
   // Guards against a second request while the first is in flight; the store's
   // `loadingBodies` can't be a dependency here without re-running the effect.
@@ -178,7 +179,8 @@ export default function NotePage() {
                     <Button
                       size="sm"
                       onClick={() =>
-                        !activeTimer && dispatch(startTimer(focusHabit.id))
+                        !activeTimer &&
+                        requestFocus(focusHabit.id, focusHabit.title)
                       }
                       disabled={Boolean(activeTimer)}
                       variant={isRunning ? "secondary" : "default"}
@@ -400,6 +402,8 @@ export default function NotePage() {
           </div>
         </aside>
       </div>
+
+      {briefing}
     </div>
   );
 }

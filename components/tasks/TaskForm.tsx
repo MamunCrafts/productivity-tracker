@@ -166,7 +166,7 @@ export function TaskForm({
               onChange={(e) => set("notes", e.target.value)}
               rows={3}
               placeholder="Anything you'd forget by tomorrow"
-              className="flex w-full resize-y rounded-md border border-line-2 bg-base px-3 py-2 text-base text-ink transition-colors placeholder:text-ink-3 hover:border-line-2/80 focus-visible:border-amber focus-visible:outline-none"
+              className="flex w-full resize-y rounded-md border border-line-2 bg-base px-3 py-2 text-base text-ink transition-colors placeholder:text-ink-3/55 hover:border-line-2/80 focus-visible:border-amber focus-visible:outline-none"
             />
           </div>
 

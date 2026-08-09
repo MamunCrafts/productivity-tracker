@@ -9,44 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil, Trash2, X, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { FOCUS_RATINGS, dayKey, formatHours, toHours } from "@/lib/analytics";
+import { ScaleSlider } from "@/components/ui/scale-slider";
+import { dayKey, focusLabel, focusOutOf10, formatHours, toHours } from "@/lib/analytics";
 
-function RatingChips({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (next: number | null) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {FOCUS_RATINGS.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(value === option.value ? null : option.value)}
-          className={cn(
-            "rounded border px-2 py-1 text-xs transition-colors",
-            value === option.value
-              ? "border-amber bg-amber/12 text-amber"
-              : "border-line-2 text-ink-3 hover:text-ink-2"
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+/** The same three scales the wrap-up asks for, so a session can be re-rated. */
+const SCALES = [
+  { key: "focusScore", label: "Focus" },
+  { key: "energyScore", label: "Energy" },
+  { key: "outputScore", label: "Output" },
+] as const;
+
+type ScaleKey = (typeof SCALES)[number]["key"];
 
 function EditRow({ log, onDone }: { log: TimeLog; onDone: () => void }) {
   const dispatch = useAppDispatch();
   const [minutes, setMinutes] = useState(Math.round(log.durationSeconds / 60));
   const [date, setDate] = useState(log.date);
   const [note, setNote] = useState(log.note ?? "");
-  const [rating, setRating] = useState<number | null>(log.focusRating ?? null);
+  const [nextAction, setNextAction] = useState(log.nextAction ?? "");
+  const [scores, setScores] = useState<Record<ScaleKey, number | null>>({
+    focusScore: log.focusScore ?? null,
+    energyScore: log.energyScore ?? null,
+    outputScore: log.outputScore ?? null,
+  });
 
   const save = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +43,8 @@ function EditRow({ log, onDone }: { log: TimeLog; onDone: () => void }) {
           durationSeconds: minutes * 60,
           date,
           note: note.trim(),
-          focusRating: rating,
+          nextAction: nextAction.trim(),
+          ...scores,
         },
       })
     );
@@ -109,9 +95,33 @@ function EditRow({ log, onDone }: { log: TimeLog; onDone: () => void }) {
         />
       </div>
 
+      {/* Editable here, but only the log's own copy — the board card was
+          created when the session was saved and lives its own life after
+          that, so renaming one doesn't silently rewrite the other. */}
       <div className="space-y-1.5">
-        <Label className="text-xs text-ink-3">Focus</Label>
-        <RatingChips value={rating} onChange={setRating} />
+        <Label htmlFor={`na-${log.id}`} className="text-xs text-ink-3">
+          Next action
+        </Label>
+        <Input
+          id={`na-${log.id}`}
+          value={nextAction}
+          onChange={(e) => setNextAction(e.target.value)}
+          placeholder="Where the next session starts"
+          className="h-9"
+        />
+      </div>
+
+      <div className="space-y-4">
+        {SCALES.map((scale) => (
+          <ScaleSlider
+            key={scale.key}
+            label={scale.label}
+            value={scores[scale.key]}
+            onChange={(next) =>
+              setScores((prev) => ({ ...prev, [scale.key]: next }))
+            }
+          />
+        ))}
       </div>
 
       <div className="flex justify-end gap-2">
@@ -160,7 +170,19 @@ export function SessionList({ habitId }: { habitId: string }) {
           );
         }
 
-        const rating = FOCUS_RATINGS.find((r) => r.value === log.focusRating);
+        // Focus reads out of 10 whichever scale it was rated on; energy and
+        // output only exist on the new one, so they're absent on older rows
+        // rather than shown as zero.
+        const focus = focusOutOf10(log);
+        const scales = [
+          focus !== null ? `Focus ${focus}/10` : null,
+          typeof log.energyScore === "number"
+            ? `Energy ${log.energyScore}/10`
+            : null,
+          typeof log.outputScore === "number"
+            ? `Output ${log.outputScore}/10`
+            : null,
+        ].filter((entry): entry is string => entry !== null);
 
         return (
           <li
@@ -179,14 +201,29 @@ export function SessionList({ habitId }: { habitId: string }) {
                   <span className="text-xs text-ink-3">
                     {log.endTime ? "timed" : "manual"}
                   </span>
-                  {rating && (
+                  {focus !== null && (
                     <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-ink-2">
-                      {rating.label}
+                      {focusLabel(focus)}
                     </span>
                   )}
                 </div>
                 {log.note && (
                   <p className="mt-1 whitespace-pre-wrap text-sm text-ink-2">{log.note}</p>
+                )}
+                {log.nextAction && (
+                  <p className="mt-1 flex gap-1.5 text-sm text-ink-3">
+                    <span className="shrink-0 text-ink-3">Next:</span>
+                    <span className="min-w-0 whitespace-pre-wrap">
+                      {log.nextAction}
+                    </span>
+                  </p>
+                )}
+                {scales.length > 0 && (
+                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 font-mono text-[11px] tnum text-ink-3">
+                    {scales.map((entry) => (
+                      <span key={entry}>{entry}</span>
+                    ))}
+                  </p>
                 )}
               </div>
 

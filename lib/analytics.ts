@@ -1,6 +1,11 @@
 import { format, subDays, startOfWeek, addDays, parseISO } from "date-fns";
 import { Habit, TimeLog } from "@/types";
 
+/**
+ * The old 1-5 focus scale. Sessions rated before the wrap-up's sliders still
+ * carry it, so it stays here as the vocabulary for a focus number rather than
+ * as an input — nothing writes `focusRating` any more.
+ */
 export const FOCUS_RATINGS = [
   { value: 1, label: "Scattered" },
   { value: 2, label: "Patchy" },
@@ -8,6 +13,29 @@ export const FOCUS_RATINGS = [
   { value: 4, label: "Sharp" },
   { value: 5, label: "Deep" },
 ] as const;
+
+type RatedLog = Pick<TimeLog, "focusScore" | "focusRating">;
+
+/**
+ * A session's focus out of 10, whichever scale it was rated on.
+ *
+ * New logs carry `focusScore` (1-10). Ones rated before the sliders carry
+ * `focusRating` (1-5), doubled here so a single chart isn't plotting two
+ * scales against each other — a 5 topped out the old scale exactly as a 10
+ * tops out this one. Read-time only: nothing on the row is rewritten, so a log
+ * rated "Deep" still reads "Deep" wherever the old vocabulary is used.
+ */
+export function focusOutOf10(log: RatedLog): number | null {
+  if (typeof log.focusScore === "number") return log.focusScore;
+  if (typeof log.focusRating === "number") return log.focusRating * 2;
+  return null;
+}
+
+/** The word for a focus number out of 10 — "Steady", "Deep", and so on. */
+export function focusLabel(outOf10: number): string {
+  const value = Math.min(Math.max(Math.round(outOf10 / 2), 1), 5);
+  return FOCUS_RATINGS[value - 1].label;
+}
 
 /** Logs store `date` as a local-time YYYY-MM-DD key; every bucket here uses the same key. */
 export const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
@@ -325,7 +353,21 @@ export type WeekSummary = {
   activeDays: number;
   bestDay: { date: string; hours: number } | null;
   perHabit: { id: string; title: string; color: string; hours: number; target: number; met: boolean }[];
-  notes: { id: string; habitTitle: string; color: string; date: string; note: string; focusRating: number | null }[];
+  /**
+   * What was written down during the week. `focus` is out of 10, from either
+   * scale — see `focusOutOf10`. A session that recorded only a next action and
+   * no note still belongs here: it is the entry you reread on Monday.
+   */
+  notes: {
+    id: string;
+    habitTitle: string;
+    color: string;
+    date: string;
+    note: string;
+    nextAction: string;
+    focus: number | null;
+  }[];
+  /** Mean focus out of 10 across the week's rated sessions. */
   averageRating: number | null;
 };
 
@@ -367,7 +409,11 @@ export function weekSummary(
 
   const titleById = new Map(habits.map((h) => [h.id, h] as const));
   const notes = scoped
-    .filter((l) => l.note && l.note.trim().length > 0)
+    .filter(
+      (l) =>
+        (l.note && l.note.trim().length > 0) ||
+        (l.nextAction && l.nextAction.trim().length > 0)
+    )
     .sort((a, b) => (a.date < b.date ? 1 : -1))
     .map((l) => ({
       id: l.id,
@@ -375,10 +421,13 @@ export function weekSummary(
       color: titleById.get(l.habitId)?.color ?? "#898781",
       date: l.date,
       note: l.note,
-      focusRating: l.focusRating ?? null,
+      nextAction: l.nextAction ?? "",
+      focus: focusOutOf10(l),
     }));
 
-  const rated = scoped.filter((l) => typeof l.focusRating === "number");
+  const rated = scoped
+    .map(focusOutOf10)
+    .filter((focus): focus is number => focus !== null);
 
   return {
     start,
@@ -390,7 +439,7 @@ export function weekSummary(
     perHabit,
     notes,
     averageRating: rated.length
-      ? rated.reduce((sum, l) => sum + (l.focusRating ?? 0), 0) / rated.length
+      ? rated.reduce((sum, focus) => sum + focus, 0) / rated.length
       : null,
   };
 }
@@ -399,10 +448,11 @@ export function weekSummary(
 export function ratingVsDuration(logs: TimeLog[]) {
   const buckets = new Map<number, { total: number; count: number }>();
   for (const log of logs) {
-    if (typeof log.focusRating !== "number") continue;
+    const focus = focusOutOf10(log);
+    if (focus === null) continue;
     const bucket = Math.min(Math.max(Math.round(toHours(log.durationSeconds) * 2) / 2, 0.5), 4);
     const entry = buckets.get(bucket) ?? { total: 0, count: 0 };
-    entry.total += log.focusRating;
+    entry.total += focus;
     entry.count += 1;
     buckets.set(bucket, entry);
   }

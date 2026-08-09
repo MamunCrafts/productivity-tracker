@@ -49,8 +49,15 @@ export async function GET(request: Request) {
     hours: Number((log.durationSeconds / 3600).toFixed(3)),
     minutes: Math.round(log.durationSeconds / 60),
     source: log.endTime ? "timer" : "manual",
+    // The legacy 1-5 column stays for rows that carry it; the three 1-10 scales
+    // are their own columns rather than being folded into it, since a 3 means
+    // different things on the two scales.
     focus_rating: log.focusRating ?? "",
+    focus_score: log.focusScore ?? "",
+    energy_score: log.energyScore ?? "",
+    output_score: log.outputScore ?? "",
     note: log.note ?? "",
+    next_action: log.nextAction ?? "",
     started_at: log.startTime,
     ended_at: log.endTime ?? "",
     log_id: log.id,

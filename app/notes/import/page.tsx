@@ -212,7 +212,7 @@ export default function ImportNotesPage() {
                               .filter(Boolean),
                           })
                         }
-                        className="w-full rounded-md border border-line-2 bg-base px-3 py-2 text-ink outline-none placeholder:text-ink-3 focus:border-amber"
+                        className="w-full rounded-md border border-line-2 bg-base px-3 py-2 text-ink outline-none placeholder:text-ink-3/55 focus:border-amber"
                       />
                     </label>
 

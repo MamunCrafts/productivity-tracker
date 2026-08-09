@@ -33,6 +33,21 @@
   --amber-deep: 30 62% 44%;
 
   --danger: 8 52% 47%;
+  /*
+    Two verdict colours, and they are not a second accent — amber still means
+    "focus" and "the primary action". These say how something turned out:
+    `success` for a target that got finished, `danger-ink` for the low end of a
+    self-rating and for the destructive control's resting state.
+
+    `danger` itself is a *fill* (the destructive button, pale text on it) and
+    lands at 3.24:1 as text on the card — fine for a border, too low to read.
+    `danger-ink` is the same red pitched for text: 6.05:1 here.
+
+    Measured against the card surface (#1F1C18):
+      success 7.93:1   danger-ink 6.05:1   (amber is 7.90:1, deliberately)
+  */
+  --success: 150 45% 58%;
+  --danger-ink: 8 58% 66%;
 
   /* shadcn primitive tokens mapped onto the palette above */
   --background: var(--base);
@@ -96,6 +111,10 @@
   --amber-deep: 28 72% 27%;
 
   --danger: 6 62% 40%;
+  /* Both darken to hold the same weight on paper that they hold on the dark
+     surface — success 5.79:1, danger-ink 6.63:1, either side of amber's 5.37. */
+  --success: 152 60% 28%;
+  --danger-ink: 6 62% 40%;
 
   /* Flipped: amber is now a dark fill, so what sits on it must be pale. */
   --primary-foreground: 42 55% 98%;
@@ -115,6 +134,8 @@
   --color-amber: hsl(var(--amber));
   --color-amber-deep: hsl(var(--amber-deep));
   --color-danger: hsl(var(--danger));
+  --color-danger-ink: hsl(var(--danger-ink));
+  --color-success: hsl(var(--success));
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -342,4 +363,110 @@ input[type="button"] {
 
 :root[data-theme="light"] .elev-lift {
   box-shadow: 0 18px 36px -14px hsl(30 25% 25% / 0.18);
+}
+
+/*
+  The 1-10 self-rating slider (`components/ui/scale-slider.tsx`).
+
+  A native range input carries the keyboard behaviour and the announcement for
+  free, but its default chrome is the one control the browser paints in its own
+  colours — so the track and thumb are rebuilt here against the theme tokens.
+  Vendor thumb selectors can't be combined into one rule: an unrecognised
+  selector invalidates the whole block, so WebKit and Firefox are declared
+  separately even though the declarations match.
+
+  The thumb is 18px of paint inside a 28px-tall control, which is what gets the
+  grab target near the touch floor without a wrapper. `--amber-deep` rather than
+  `--amber`: this is the one place a filled dot sits directly on the card in
+  both themes, and the lighter amber loses its edge on paper.
+*/
+.scale-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.scale-slider::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 999px;
+  background: hsl(var(--line-2));
+}
+
+.scale-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 999px;
+  background: hsl(var(--line-2));
+}
+
+.scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  margin-top: -7.5px; /* centres an 18px thumb on a 3px track */
+  border-radius: 999px;
+  border: none;
+  background: hsl(var(--amber-deep));
+  transition: transform 0.12s ease-out;
+}
+
+.scale-slider::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  border: none;
+  background: hsl(var(--amber-deep));
+  transition: transform 0.12s ease-out;
+}
+
+.scale-slider:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.scale-slider:active::-moz-range-thumb {
+  transform: scale(1.15);
+}
+
+/* Untouched: the thumb is a resting position, not an answer, so it wears the
+   muted ink until it carries a value the reader actually gave. */
+.scale-slider-unset::-webkit-slider-thumb {
+  background: hsl(var(--ink-3));
+}
+
+.scale-slider-unset::-moz-range-thumb {
+  background: hsl(var(--ink-3));
+}
+
+/*
+  The answer's own colour: 1-3 reads as a bad session, 8-10 as a good one, and
+  the middle stays amber. It is redundant with the number beside it on purpose —
+  colour is never the only channel — and it makes a row of three sliders
+  scannable at a glance, which is the whole reason for asking three.
+*/
+.scale-slider-low::-webkit-slider-thumb {
+  background: hsl(var(--danger-ink));
+}
+
+.scale-slider-low::-moz-range-thumb {
+  background: hsl(var(--danger-ink));
+}
+
+.scale-slider-high::-webkit-slider-thumb {
+  background: hsl(var(--success));
+}
+
+.scale-slider-high::-moz-range-thumb {
+  background: hsl(var(--success));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scale-slider::-webkit-slider-thumb {
+    transition: none;
+  }
+
+  .scale-slider::-moz-range-thumb {
+    transition: none;
+  }
 }

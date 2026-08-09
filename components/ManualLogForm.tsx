@@ -49,7 +49,13 @@ export function ManualLogForm({ habitId, habitTitle }: ManualLogFormProps) {
       durationSeconds: minutes * 60,
       date,
       note: note.trim(),
+      nextAction: "",
+      // An entry typed in after the fact has no session to rate — the scales
+      // are asked at the end of a timed one, in the wrap-up.
       focusRating: null,
+      focusScore: null,
+      energyScore: null,
+      outputScore: null,
     };
 
     dispatch(createLogAsync(log));

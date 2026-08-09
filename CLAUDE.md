@@ -26,7 +26,7 @@ Requires `.env` (or `.env.local`) with **`DATABASE_URL`** (the MongoDB connectio
 The README describes "Tasks"; the code has no such concept. The two real entities (`types/index.ts`) are:
 
 - **Habit** — a long-running goal with `totalHours`, `perDayHours`, `totalDays`, `weekFrequency`, a hex `color`, and `status: "Active" | "Deleted"`. `pinnedAt` is a timestamp, not a boolean, so `sortPinnedFirst` (in `store/habitSlice.ts`) can put the *most recently* pinned habit at the top; pinning reorders within a `/habits` section, never across them.
-- **TimeLog** — one chunk of focused time against a habit: `habitId`, `durationSeconds`, and `date` (`YYYY-MM-DD`, used as the grouping key for analytics).
+- **TimeLog** — one chunk of focused time against a habit: `habitId`, `durationSeconds`, and `date` (`YYYY-MM-DD`, used as the grouping key for analytics). It also carries what the wrap-up collects: `note` (what happened), `nextAction` (where the next session starts), and **three 1-10 self-ratings** — `focusScore`, `energyScore`, `outputScore`, each `null` when the slider was left untouched, which is not the same as a 1. `focusRating` is the **old 1-5 scale**: still on rows rated before the sliders, never written to a new log, and read only through `focusOutOf10` (see Analytics). Manual entries rate nothing — all four are null/empty.
 - **Task** — a Kanban card. `status: "Todo" | "Doing" | "Done"` *is* the column (there are no user-defined columns), `order` is a **fractional** position within it, and `habitId` is **nullable** — a task may stand alone or borrow a habit's colour and name. Nothing in analytics derives from tasks, which is why they hard-delete.
 
 - **Note** — imported markdown. `content` is the original file kept byte-for-byte; `blocks` is the parsed JSON tree the reader renders. `blocks`, `excerpt` and `wordCount` are **derived server-side from `content` on every write** and are absent from the PATCH whitelist, so the two can't drift. `habitId` is nullable like a task's, and notes hard-delete for the same reason.
@@ -86,7 +86,11 @@ All of them use a client-generated `crypto.randomUUID()` string in an applicatio
 
 **Four Redux slices.** `store/habitSlice.ts` (mounted as `habit`) holds `habits`, `logs`, `activeTimer`, and a `status` flag driven only by `fetchHabits` (`HabitList` renders `ShimmerCard`s while `loading`). All mutations are `createAsyncThunk`s that `fetch` the API routes and reconcile local state in `extraReducers`. Always use the typed `useAppSelector` / `useAppDispatch` from `store/hooks.ts`.
 
-**The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `FocusTimer.tsx` renders from the layout so it survives route changes.
+**The timer writes one log, at the end.** `startTimer` seeds an in-memory `activeTimer` carrying `taskId`, `phase`, `phaseStartedAt`, and `breakSeconds`; no DB write happens until `stopTimerAsync`, which subtracts break time and POSTs a single `TimeLog`. `store/timerPersistence.ts` mirrors `activeTimer` to `localStorage` on every action and `StoreProvider` rehydrates it, so a refresh no longer loses the session — **sessions older than 12 hours are dropped as abandoned** rather than silently restored. `taskId` is deliberately *not* required by the stored-timer validator (and defaults to `null` on read), so a session stored before the field existed still restores instead of being thrown away on the first refresh. `FocusTimer.tsx` renders from the layout so it survives route changes.
+
+**A session is bracketed by two dialogs, and both are about one card.** `components/FocusBriefing.tsx` opens before the clock: the rules, plus the habit's **Todo** cards to pick one from. `useFocusBriefing()` is the whole entry point — every "Start focus" control (`HabitCard`, `RoutineBlockRow`, `/notes/[id]`) calls `requestFocus(habitId, title)` and renders the returned `briefing`, so no component dispatches `startTimer` directly and the rules can't differ by route. Continue moves the picked card to **Doing** and *then* starts the clock; the card id rides on `activeTimer`. At the end `SessionWrapUp` shows that same card with a tick that moves it to **Done** (and back, if mistapped) — applied immediately, not on save — plus the note, the next action and the three scales. The card is looked up live from the store, never copied, so a rename or delete on the board mid-session reads correctly.
+
+**A next action becomes a card.** A non-empty `nextAction` in the wrap-up creates a `Todo` task carrying the session's `habitId`, on top of storing it on the log. The two are independent after creation: renaming the card doesn't rewrite what the session recorded, and deleting it doesn't erase the log's own copy.
 
 `ManualLogForm` writes a `TimeLog` with `endTime: null`, so **`startTime` is only trustworthy when `endTime !== null`** — don't build time-of-day analysis on it without that filter. That same null is what distinguishes "timed" from "manual" in the session list and the export.
 
@@ -127,6 +131,8 @@ All six `PATCH` routes **whitelist editable fields** (`EDITABLE` array at the to
 - `hoursByHabit` folds logs whose habit was soft-deleted into a single **"Archived habits"** row. Without it those hours count toward page totals but disappear from the breakdown.
 - The range filter on `/` scopes every chart *except* goal progress, which is deliberately all-time (the goals are lifetime targets) and is labelled as such.
 
+**Focus is read through `focusOutOf10`, never off the row.** A log carries either the new `focusScore` (1-10) or the legacy `focusRating` (1-5), and that helper returns whichever exists on the 1-10 scale, doubling the old one. It is a **read-time convention — nothing on disk is rewritten** — which is what keeps the Focus-quality chart, the weekly average and the session list plotting one scale instead of two. `focusLabel(n)` is the vocabulary for a number ("Steady", "Deep"); `FOCUS_RATINGS` survives only as that vocabulary and is no longer an input anywhere. `energyScore` and `outputScore` have no legacy twin, so they are simply absent on older rows rather than shown as zero.
+
 `lib/viz.ts` holds the chart chrome and the sequential ramp — **one `VizPalette` per theme**, with the validation results in a comment. Recharts writes colours into SVG paint attributes, so charts can't inherit the CSS tokens; they read `useViz()` instead, which swaps the whole object. Note the heat ramp **reverses direction** between themes: on a dark surface more hours read lighter, on paper they read darker. Rules that the charts already follow and new ones should too:
 
 - **Habit colors are entity identity**, chosen by the user and persisted — a habit wears the same hue on its card, in its chart, and in the breakdown. Never assign chart color by rank or value.
@@ -153,12 +159,15 @@ Both palettes keep the same two rules, and the light one is measured to sit alon
 | `line`, `line-2` | hairline, stronger border |
 | `ink`, `ink-2`, `ink-3` | primary / secondary / muted text |
 | `amber`, `amber-deep` | the single accent |
-| `danger` | destructive only |
+| `danger` | destructive **fills** only (the button; pale text sits on it) |
+| `success`, `danger-ink` | the verdict pair — how something turned out, as text or a thin mark |
 
 Two rules the palette exists to enforce, both about eye strain — don't undo them:
 
 - **No pure black or pure white.** Primary text sits at 13.4:1 on the card surface, not 21:1. That's still well above WCAG AAA (7:1) but avoids the halation that makes `#fff`-on-`#000` tiring. Everything is warm-shifted (hues 32–42°) to keep high-energy blue off the largest surfaces.
 - **Amber is reserved.** It means "focus" or "the primary action" and nothing else. Chart data stays cool blue (`VIZ.accent`) precisely so nothing on a chart looks pressable.
+
+**`success` and `danger-ink` are a verdict, not a second accent.** They say how something turned out — a target that got finished, the low end of a self-rating, the resting state of "Discard session" — and never where to look or what to press. Both are measured like the rest of the palette against the card surface: `success` 7.93:1 dark / 5.79:1 light, `danger-ink` 6.05 / 6.63, either side of amber's 7.90 / 5.37. **`danger-ink` exists because `danger` is a fill**: as text on a card it lands at 3.24:1, fine for a border and too low to read. Colour is never the only channel — the sliders' band colour (1-3 low, 8-10 high) repeats a number that is always printed beside it.
 
 **The app mark is in two places and they have to stay in step.** `app/icon.svg` is the favicon — ring, lit core, on a `#201D18` tile, with literal hex because it lands on browser chrome we don't control and the dark theme's amber would wash out on a white tab strip. `components/Mark.tsx` is the same mark in the nav and on the auth screens, without the tile and in `currentColor`, so it follows the amber token through both themes. Same internal ratios (core/ring 0.35, stroke/ring 0.39), different crop. Change one, change the other.
 

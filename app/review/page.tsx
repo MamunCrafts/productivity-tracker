@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { useAppSelector } from "@/store/hooks";
-import { formatHours, weekSummary, FOCUS_RATINGS } from "@/lib/analytics";
+import { formatHours, weekSummary, focusLabel } from "@/lib/analytics";
 import { PageHeader, PageShell } from "@/components/PageFrame";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -180,7 +180,7 @@ export default function ReviewPage() {
                   <span className="font-mono text-ink-2 tnum">
                     {week.averageRating.toFixed(1)}
                   </span>{" "}
-                  /5
+                  /10
                 </p>
               )}
             </div>
@@ -193,17 +193,31 @@ export default function ReviewPage() {
             ) : (
               <ul className="space-y-4">
                 {week.notes.map((note) => {
-                  const rating = FOCUS_RATINGS.find((r) => r.value === note.focusRating);
                   return (
                     <li key={note.id} className="border-l-2 pl-3" style={{ borderColor: note.color }}>
                       <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-ink-3">
                         <span className="text-ink-2">{note.habitTitle}</span>
                         <span>{format(parseISO(note.date), "EEE, MMM d")}</span>
-                        {rating && <span>· {rating.label}</span>}
+                        {note.focus !== null && (
+                          <span>
+                            · {focusLabel(note.focus)}{" "}
+                            <span className="font-mono tnum">{note.focus}/10</span>
+                          </span>
+                        )}
                       </p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
-                        {note.note}
-                      </p>
+                      {note.note && (
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-ink">
+                          {note.note}
+                        </p>
+                      )}
+                      {note.nextAction && (
+                        <p className="mt-1 flex gap-1.5 text-sm text-ink-2">
+                          <span className="shrink-0 text-ink-3">Next:</span>
+                          <span className="min-w-0 whitespace-pre-wrap">
+                            {note.nextAction}
+                          </span>
+                        </p>
+                      )}
                     </li>
                   );
                 })}

@@ -7,7 +7,11 @@ const EDITABLE: (keyof TimeLogPatch)[] = [
   "durationSeconds",
   "date",
   "note",
+  "nextAction",
   "focusRating",
+  "focusScore",
+  "energyScore",
+  "outputScore",
 ];
 
 function pickEditable(body: Record<string, unknown>): TimeLogPatch {

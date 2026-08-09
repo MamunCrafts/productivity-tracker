@@ -442,7 +442,7 @@ function NameInput({
         onBlur={onSubmit}
         // `text-base` on a phone so focusing it doesn't zoom iOS Safari in
         // on a rail you then have to pinch back out of.
-        className="min-w-0 flex-1 rounded border border-line-2 bg-base px-2 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 focus:border-amber sm:py-1 sm:text-sm"
+        className="min-w-0 flex-1 rounded border border-line-2 bg-base px-2 py-1.5 text-base text-ink outline-none placeholder:text-ink-3/55 focus:border-amber sm:py-1 sm:text-sm"
       />
       <button
         type="button"

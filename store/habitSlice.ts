@@ -9,6 +9,13 @@ import { RootState } from "./store";
  */
 export interface ActiveTimer {
   habitId: string;
+  /**
+   * The board card this session is against, picked in the briefing and moved
+   * to Doing when the clock started. Null when the session isn't a card. Held
+   * on the timer so the wrap-up can offer to finish it, and so a refresh
+   * mid-session doesn't lose which card was in play.
+   */
+  taskId: string | null;
   startTime: string;
   logId: string;
   /** "work" counts toward the session; "break" does not. */
@@ -151,7 +158,10 @@ export const deleteLogAsync = createAsyncThunk(
 /** What the wrap-up step collects when a session ends. */
 export interface StopTimerInput {
   note?: string;
-  focusRating?: number | null;
+  nextAction?: string;
+  focusScore?: number | null;
+  energyScore?: number | null;
+  outputScore?: number | null;
 }
 
 export const stopTimerAsync = createAsyncThunk(
@@ -188,7 +198,13 @@ export const stopTimerAsync = createAsyncThunk(
       durationSeconds,
       date: start.toISOString().split("T")[0],
       note: input?.note?.trim() ?? "",
-      focusRating: input?.focusRating ?? null,
+      nextAction: input?.nextAction?.trim() ?? "",
+      // Never set on a new log: the 1-5 rating is the old scale, and a session
+      // carrying both would be counted twice by anything averaging them.
+      focusRating: null,
+      focusScore: input?.focusScore ?? null,
+      energyScore: input?.energyScore ?? null,
+      outputScore: input?.outputScore ?? null,
     };
 
     await dispatch(createLogAsync(newLog)).unwrap();
@@ -200,11 +216,15 @@ export const habitSlice = createSlice({
   name: "habit",
   initialState,
   reducers: {
-    startTimer: (state, action: PayloadAction<string>) => {
+    startTimer: (
+      state,
+      action: PayloadAction<{ habitId: string; taskId?: string | null }>
+    ) => {
       if (state.activeTimer) return;
       const now = new Date().toISOString();
       state.activeTimer = {
-        habitId: action.payload,
+        habitId: action.payload.habitId,
+        taskId: action.payload.taskId ?? null,
         startTime: now,
         logId: crypto.randomUUID(),
         phase: "work",

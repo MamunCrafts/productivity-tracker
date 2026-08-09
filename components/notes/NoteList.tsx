@@ -176,7 +176,7 @@ export function NoteList() {
               // the page in on any input under 16px, and it does not zoom back
               // out. `h-11` matches the `Input` primitive, which is sized for
               // the same two reasons.
-              className="h-11 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-line-2 sm:h-10 sm:text-sm"
+              className="h-11 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-base text-ink outline-none placeholder:text-ink-3/55 focus:border-line-2 sm:h-10 sm:text-sm"
             />
           </div>
 

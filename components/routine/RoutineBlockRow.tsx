@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AlertTriangle, Play, Trash2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteRoutineBlock } from "@/store/routineSlice";
-import { startTimer } from "@/store/habitSlice";
+import { useFocusBriefing } from "@/components/FocusBriefing";
 import { RoutineBlock } from "@/types";
 import { RoutineForm } from "@/components/routine/RoutineForm";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ export function RoutineBlockRow({
   );
   const activeTimer = useAppSelector((state) => state.habit.activeTimer);
   const [confirming, setConfirming] = useState(false);
+  const { requestFocus, briefing } = useFocusBriefing();
 
   /**
    * A habit that is finished, paused or soft-deleted can't take a session, so
@@ -120,7 +121,7 @@ export function RoutineBlockRow({
             variant="ghost"
             size="icon"
             className="h-8 w-8 opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100"
-            onClick={() => dispatch(startTimer(habit.id))}
+            onClick={() => requestFocus(habit.id, habit.title)}
             aria-label={`Start a session on ${habit.title}`}
           >
             <Play className="h-3.5 w-3.5" aria-hidden />
@@ -160,6 +161,8 @@ export function RoutineBlockRow({
           </Button>
         )}
       </div>
+
+      {briefing}
     </li>
   );
 }

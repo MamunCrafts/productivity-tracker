@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { Habit } from "@/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  startTimer,
   deleteHabitAsync,
   updateHabitAsync,
   togglePinAsync,
 } from "@/store/habitSlice";
+import { useFocusBriefing } from "@/components/FocusBriefing";
 import { Button } from "@/components/ui/button";
 import {
   Play,
@@ -85,6 +85,7 @@ export function HabitCard({ habit }: HabitCardProps) {
   const activeTimer = useAppSelector((state) => state.habit.activeTimer);
   const logs = useAppSelector((state) => state.habit.logs);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const { requestFocus, briefing } = useFocusBriefing();
 
   const isRunning = activeTimer?.habitId === habit.id;
   const isPaused = habit.status === "Paused";
@@ -240,7 +241,7 @@ export function HabitCard({ habit }: HabitCardProps) {
           {!isFinished && !isPaused && (
             <Button
               size="sm"
-              onClick={() => !activeTimer && dispatch(startTimer(habit.id))}
+              onClick={() => !activeTimer && requestFocus(habit.id, habit.title)}
               disabled={Boolean(activeTimer)}
               variant={isRunning ? "secondary" : "default"}
               className="gap-2"
@@ -378,6 +379,8 @@ export function HabitCard({ habit }: HabitCardProps) {
         aria-valuemax={100}
         aria-label={`${habit.title}: ${Math.round(pace.goalPct)}% of goal`}
       />
+
+      {briefing}
     </motion.li>
   );
 }

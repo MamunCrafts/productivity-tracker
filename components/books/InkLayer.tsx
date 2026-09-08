@@ -80,7 +80,11 @@ export function InkLayer({ page, tool, color, width, strokes, onAdd, onRemove }:
         const points = (samples.length ? samples : [event.nativeEvent]).map((sample) => point(sample, bounds));
         drawing.stroke = { ...drawing.stroke, points: [...drawing.stroke.points, ...points].slice(0, MAX_INK_POINTS) };
         setDraft(drawing.stroke);
-        if (drawing.stroke.points.length === MAX_INK_POINTS) finish(event);
+        if (drawing.stroke.points.length === MAX_INK_POINTS) {
+          onAdd(drawing.stroke);
+          drawing.stroke = { ...drawing.stroke, id: crypto.randomUUID(), points: [drawing.stroke.points.at(-1)!] };
+          setDraft(drawing.stroke);
+        }
       }}
       onPointerUp={(event) => finish(event)}
       onPointerCancel={(event) => finish(event, true)}

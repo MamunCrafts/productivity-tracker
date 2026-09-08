@@ -574,11 +574,11 @@ export default function BookReader({ id }: { id: string }) {
           full ? "shrink-0" : "my-5 justify-between gap-4",
         )}
       >
-        <div className={cn("min-w-0", full && "flex-1")}>
+        <div className={cn("min-w-0", full && "w-full xl:w-auto xl:min-w-48 xl:flex-1")}>
           <h1
             className={cn(
               "font-display",
-              full ? "truncate text-base" : "text-2xl",
+              full ? "truncate text-[length:1rem]" : "text-2xl",
             )}
           >
             {book?.title || "Opening book…"}

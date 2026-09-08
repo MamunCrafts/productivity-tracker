@@ -177,6 +177,10 @@
   padding-left: max(8px, env(safe-area-inset-left));
   padding-right: max(8px, env(safe-area-inset-right));
 }
+/* The app's main and footer otherwise form competing stacking contexts. */
+body:has(.reader-full) > main {
+  z-index: auto;
+}
 .reader-full .reader-desk > .react-pdf__Document {
   margin-block: auto;
   flex-shrink: 0;

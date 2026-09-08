@@ -4,7 +4,7 @@ import dbConnect from "@/lib/db";
 import BookModel from "@/models/Book";
 import CategoryModel from "@/models/Category";
 import { isHighlightColor } from "@/lib/highlights";
-import { getR2, getR2UploadError } from "@/lib/r2";
+import { bookCoverKey, getR2, getR2UploadError } from "@/lib/r2";
 import type { Highlight } from "@/types/books";
 
 // The AWS SDK signs with node crypto, so this route cannot run on the edge.
@@ -178,8 +178,14 @@ export async function DELETE(_: Request, { params }: Context) {
     );
   }
   try {
+    // Both objects, and the PDF first: a cover left behind is a thumbnail,
+    // while a PDF left behind is the whole file. `DeleteObject` on a key that
+    // was never written succeeds, so a book with no cover needs no branch.
     await r2.client.send(
       new DeleteObjectCommand({ Bucket: r2.bucket, Key: book.objectKey }),
+    );
+    await r2.client.send(
+      new DeleteObjectCommand({ Bucket: r2.bucket, Key: bookCoverKey(id) }),
     );
   } catch (error) {
     // The 503s are about configuration and credentials, which read the same

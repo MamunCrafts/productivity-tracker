@@ -27,6 +27,17 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+/**
+ * The `pdf` object `<Document onLoadSuccess>` hands back, named off the prop
+ * itself rather than reached for in react-pdf's internal type paths.
+ */
+type LoadedDocument = Parameters<
+  NonNullable<React.ComponentProps<typeof Document>["onLoadSuccess"]>
+>[0];
+
+/** How wide a cover is stored. Two-up on a phone shelf is ~160px CSS. */
+const COVER_WIDTH = 640;
+
 /** Vendor-prefixed fullscreen, which is all Safari on a desk offers. */
 type Fullscreenable = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void> | void;
@@ -141,6 +152,7 @@ export default function BookReader({ id }: { id: string }) {
     null,
   );
   const pageFieldId = useId();
+  const coverAttempted = useRef(false);
   const container = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
@@ -321,6 +333,52 @@ export default function BookReader({ id }: { id: string }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate, firstPage, spread, full, toggleFull, stepZoom]);
+
+  /**
+   * Render page 1 to a JPEG and store it as the book's cover, once, the first
+   * time a book without one is opened.
+   *
+   * This is the client's job because this is the client that has already paid
+   * for it: the worker is warm, the document is parsed, and rasterizing one
+   * page more costs a few hundred milliseconds off the main thread. Doing it
+   * server-side would mean a canvas implementation in the deployment — a native
+   * dependency for a thumbnail. It is also why no backfill is needed: every
+   * book that predates covers gets one on its next read.
+   *
+   * Every failure is swallowed on purpose. A cover is decoration; a book that
+   * cannot produce one still has to open.
+   */
+  async function captureCover(pdf: LoadedDocument) {
+    if (coverAttempted.current || !book || book.hasCover) return;
+    coverAttempted.current = true;
+    try {
+      const first = await pdf.getPage(1);
+      const unscaled = first.getViewport({ scale: 1 });
+      // Never upscale a small page into a blurry larger JPEG.
+      const scale = Math.min(1.5, COVER_WIDTH / unscaled.width);
+      const viewport = first.getViewport({ scale });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      await first.render({ canvas, viewport }).promise;
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.72),
+      );
+      canvas.width = 0;
+      canvas.height = 0;
+      if (!blob) return;
+      await bookRequest(`/api/books/${id}/cover`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: blob,
+      });
+      setBook((current) =>
+        current ? { ...current, hasCover: true } : current,
+      );
+    } catch {
+      // Decoration only — see above.
+    }
+  }
 
   // Fractional line rectangles keep highlights aligned after resizing.
   function captureSelection() {
@@ -643,9 +701,10 @@ export default function BookReader({ id }: { id: string }) {
         {book && size.width > 0 && (
           <Document
             file={`/api/books/${id}/file`}
-            onLoadSuccess={({ numPages }) => {
-              setPageCount(numPages);
-              setPage((current) => Math.min(current, numPages));
+            onLoadSuccess={(pdf) => {
+              setPageCount(pdf.numPages);
+              setPage((current) => Math.min(current, pdf.numPages));
+              void captureCover(pdf);
             }}
             onLoadError={() =>
               setError(

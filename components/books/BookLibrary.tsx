@@ -297,53 +297,118 @@ export function BookLibrary() {
             </p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {visibleBooks.map((book) => (
-              <article
-                key={book.id}
-                className="group relative flex flex-col overflow-hidden rounded-r-lg border border-line bg-surface transition-shadow focus-within:shadow-xl hover:shadow-xl"
-              >
-                <div className="relative flex min-h-48 flex-col justify-between border-l-8 border-amber-deep bg-surface-2 p-6 shadow-[inset_6px_0_10px_-6px_#000]">
-                  <BookOpen size={24} className="text-amber" />
-                  <h2 className="mt-6 break-words font-display text-2xl group-hover:text-amber">
+          /*
+            A shelf, not a list of records: the cover does the recognising, so
+            it gets the space and everything else gets out of its way. Two up on
+            a phone is what a bookshelf looks like at that width, and a 2:3
+            frame is the printed proportion — a cover cropped to it reads as a
+            book even when what is inside it is page 1 of a report.
+          */
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {visibleBooks.map((book) => {
+              const category =
+                categories.find((folder) => folder.id === book.categoryId)
+                  ?.name || "Uncategorized";
+              return (
+                <article key={book.id} className="group relative flex flex-col">
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-lg border border-line bg-surface-2 shadow-lg transition-shadow group-hover:shadow-2xl">
+                    {/*
+                      The drawn cover is the ground and the photograph sits on
+                      top of it, rather than the two being alternatives. That is
+                      what makes a cover that fails to load — flagged in the
+                      record but missing from the bucket — degrade into the
+                      placeholder instead of a broken-image box: `onError`
+                      hides the `img` and reveals what was always behind it.
+                    */}
+                    <div className="flex h-full flex-col justify-between border-l-8 border-amber-deep p-4 shadow-[inset_6px_0_10px_-6px_#000]">
+                      <BookOpen size={20} className="text-amber" />
+                      <div>
+                        <p className="break-words font-display text-lg leading-tight text-ink">
+                          {book.title}
+                        </p>
+                        {!book.hasCover && (
+                          /* Says why this one looks different from its
+                             neighbours, rather than leaving it a mystery. */
+                          <p className="mt-2 text-[10px] leading-snug text-ink-3">
+                            Cover appears after the first open
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {book.hasCover && (
+                      /*
+                        A plain `img`, deliberately: `next/image` would route
+                        this through the optimizer, which fetches the source
+                        server-side without the reader's session cookie — and
+                        every book route is behind the sign-in guard, so it
+                        would fetch the login redirect instead of a JPEG.
+
+                        `object-top` because the head of page 1 is what
+                        identifies a document; if the crop has to lose
+                        something, lose the bottom margin.
+                      */
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={`/api/books/${book.id}/cover`}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        onError={(event) => {
+                          event.currentTarget.hidden = true;
+                        }}
+                        className="absolute inset-0 h-full w-full object-cover object-top"
+                      />
+                    )}
+                    {/* The gutter shadow, so a cover sits in a book rather than
+                        floating as a picture. Literal black like the inset
+                        shadow above it and `.pdf-leaf` in the reader: this is
+                        shadow on paper, not a themed surface. */}
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/45 to-transparent"
+                    />
+                    {book.currentPage > 1 && (
+                      <span className="absolute bottom-2 right-2 rounded bg-base/85 px-1.5 py-0.5 font-mono text-[10px] tnum text-ink-2 backdrop-blur-sm">
+                        p. {book.currentPage}
+                      </span>
+                    )}
+                  </div>
+                  {/*
+                    Two lines, always — clamped at two and holding the height of
+                    two whether the name needs them or not. Without the floor,
+                    a one-line title lifts its card's meta and controls a line
+                    higher than its neighbours', and a shelf of covers stops
+                    reading as a grid. `leading-snug` is 1.375, hence 2.75em.
+                  */}
+                  <h2 className="mt-3 line-clamp-2 min-h-[2.75em] break-words font-display text-sm leading-snug text-ink transition-colors group-hover:text-amber sm:text-base">
                     {book.title}
                   </h2>
-                </div>
-                <div className="flex-1 space-y-2 p-4 text-xs text-ink-2">
-                  <p>
-                    {categories.find(
-                      (category) => category.id === book.categoryId,
-                    )?.name || "Uncategorized"}
+                  <p className="text-xs text-ink-3">
+                    {category} · {(book.bytes / 1024 / 1024).toFixed(1)} MB
                   </p>
-                  <p>
-                    {(book.bytes / 1024 / 1024).toFixed(1)} MB ·{" "}
-                    {book.currentPage > 1
-                      ? `Continue on page ${book.currentPage}`
-                      : "Open book"}
-                  </p>
-                </div>
-                {/*
-                  The link is stretched over the card instead of being the card,
-                  so the cover still opens the book while the row underneath
-                  stays operable: an `<a>` cannot contain buttons — nesting
-                  interactive elements is invalid and takes keyboard and screen
-                  reader behaviour with it. The actions sit above this overlay
-                  on `z-20`.
-                */}
-                <Link
-                  href={`/books/${book.id}`}
-                  className="absolute inset-0 z-10 rounded-r-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
-                >
-                  <span className="sr-only">Open {book.title}</span>
-                </Link>
-                <BookActions
-                  book={book}
-                  categories={categories}
-                  onSaved={saveBook}
-                  onDeleted={forgetBook}
-                />
-              </article>
-            ))}
+                  {/*
+                    The link is stretched over the card instead of being the
+                    card, so the cover still opens the book while the row below
+                    stays operable: an `<a>` cannot contain buttons — nesting
+                    interactive elements is invalid and takes keyboard and
+                    screen reader behaviour with it. The actions sit above this
+                    overlay on `z-20`.
+                  */}
+                  <Link
+                    href={`/books/${book.id}`}
+                    className="absolute inset-0 z-10 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+                  >
+                    <span className="sr-only">Open {book.title}</span>
+                  </Link>
+                  <BookActions
+                    book={book}
+                    categories={categories}
+                    onSaved={saveBook}
+                    onDeleted={forgetBook}
+                  />
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

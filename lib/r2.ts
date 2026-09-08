@@ -96,8 +96,7 @@ export function getR2UploadError(error: unknown): {
     message.includes("timed out")
   ) {
     return {
-      message:
-        "The R2 upload timed out. Check your connection and try again.",
+      message: "The R2 upload timed out. Check your connection and try again.",
       status: 504,
     };
   }

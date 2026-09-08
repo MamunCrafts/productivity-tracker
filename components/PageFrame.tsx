@@ -83,7 +83,7 @@ export function PageHeader({
         // its gap, which would leave the title short of the measure.
         action ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-1",
         "mb-8 sm:mb-10",
-        className
+        className,
       )}
     >
       {/* The eyebrow shares the title's cell rather than taking a row of its
@@ -93,7 +93,7 @@ export function PageHeader({
         <h1
           className={cn(
             "font-display text-3xl font-medium leading-tight text-ink sm:text-4xl",
-            eyebrow && "mt-3"
+            eyebrow && "mt-3",
           )}
         >
           {title}
@@ -112,8 +112,8 @@ export function PageHeader({
         // is what this header sits on.
         <div
           className={cn(
-            "col-start-1 row-start-2 text-sm text-lead sm:text-base",
-            action && "col-span-2 sm:col-span-1"
+            "col-start-1 text-ink!  row-start-2 text-sm sm:text-base",
+            action && "col-span-2 sm:col-span-1",
           )}
         >
           {lead}
@@ -126,7 +126,7 @@ export function PageHeader({
             "col-start-2 row-start-1",
             // Only span down to a row that exists — otherwise the grid grows an
             // empty second row and its gap under the header.
-            lead && "sm:row-span-2 sm:self-end"
+            lead && "sm:row-span-2 sm:self-end",
           )}
         >
           {action}

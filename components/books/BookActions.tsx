@@ -96,28 +96,30 @@ export function BookActions({
   return (
     <>
       {/* Above the card's own stretched link, and 70% at rest rather than
-          hidden: touch has no hover, so a control gated on it isn't reachable. */}
-      <div className="relative z-20 flex items-center gap-1 border-t border-line px-2 py-1.5 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+          hidden: touch has no hover, so a control gated on it isn't reachable.
+          The labels collapse to their icons on a phone, where two covers share
+          a 360px row and there is no width for two words as well. */}
+      <div className="relative z-20 mt-1 flex items-center gap-1 opacity-70 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2"
+          className="gap-2 px-2"
           onClick={() => openEdit(true)}
         >
           <Pencil className="h-4 w-4" aria-hidden />
-          Edit
+          <span className="sr-only sm:not-sr-only">Edit</span>
         </Button>
         <Button
           variant="ghost"
           size="sm"
-          className="gap-2 text-danger-ink hover:text-danger-ink"
+          className="gap-2 px-2 text-danger-ink hover:text-danger-ink"
           onClick={() => {
             setError("");
             setConfirming(true);
           }}
         >
           <Trash2 className="h-4 w-4" aria-hidden />
-          Delete
+          <span className="sr-only sm:not-sr-only">Delete</span>
         </Button>
       </div>
 

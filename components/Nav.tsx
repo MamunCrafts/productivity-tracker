@@ -54,7 +54,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
           <NavClock />
         </div>
 
-        <div className="hidden items-center gap-1 sm:flex">
+        <div className="hidden items-center gap-1 xl:flex">
           {LINKS.map(({ href, label, Icon }) => {
             const active = isActiveHref(href, pathname);
             return (
@@ -79,7 +79,7 @@ export function Nav({ signedIn }: { signedIn: boolean }) {
         {/* Pushed right, away from the destinations: leaving isn't one of
             them. */}
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          <div className="hidden items-center gap-1 sm:flex">
+          <div className="hidden items-center gap-1 xl:flex">
             <ThemeToggle />
             {signedIn ? (
               <button

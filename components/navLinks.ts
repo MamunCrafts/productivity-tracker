@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookText,
+  BookOpen,
   CalendarClock,
   KanbanSquare,
   ListChecks,
@@ -37,6 +38,7 @@ export const LINKS: NavLink[] = [
   { href: "/routine", label: "Routine", Icon: CalendarClock },
   { href: "/tasks", label: "Board", Icon: KanbanSquare },
   { href: "/notes", label: "Notes", Icon: BookText },
+  { href: "/books", label: "Books", Icon: BookOpen },
   { href: "/review", label: "Review", Icon: NotebookPen },
 ];
 

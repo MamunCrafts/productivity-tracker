@@ -1,0 +1,84 @@
+/* Frame the original PDF as a physical spread. */
+.reader-desk {
+  overflow: hidden;
+  border: 1px solid hsl(var(--line));
+  border-radius: 12px;
+  background: hsl(var(--surface-2));
+  padding: 24px 0 32px;
+  min-height: 300px;
+}
+.book-spread {
+  display: flex;
+  position: relative;
+  align-items: flex-start;
+  margin: auto;
+  perspective: 2200px;
+  box-shadow:
+    0 14px 30px #0004,
+    0 3px #ddd,
+    0 5px #aaa,
+    0 7px #ddd;
+}
+.pdf-leaf {
+  position: relative;
+  background: white;
+  flex-shrink: 0;
+}
+.pdf-leaf::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  box-shadow:
+    inset 10px 0 18px -16px #0009,
+    inset -10px 0 18px -16px #0009;
+}
+.pdf-end {
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  background: #f8f8f5;
+  color: #666;
+  font-family: Georgia, serif;
+}
+/* Marks sit above the canvas without blocking text selection. */
+.pdf-highlights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.pdf-highlights span {
+  position: absolute;
+  background: #facc15;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+}
+.pdf-leaf .react-pdf__Page__textContent {
+  user-select: text;
+}
+/* Rotate the leaf around the binding with a paper reverse side. */
+.turning-leaf {
+  position: absolute;
+  top: 0;
+  z-index: 10;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+.turning-leaf > .pdf-leaf {
+  backface-visibility: hidden;
+}
+.page-back {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #e2e1dc, #fff 18%, #f8f8f5);
+  transform: rotateY(180deg);
+  backface-visibility: hidden;
+  box-shadow: 0 10px 24px #0003;
+}
+@media (prefers-reduced-motion: reduce) {
+  .turning-leaf {
+    display: none;
+  }
+}

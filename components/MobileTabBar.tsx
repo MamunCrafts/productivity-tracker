@@ -33,10 +33,8 @@ export function MobileTabBar() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-base/90 backdrop-blur-xl sm:hidden"
     >
-      {/* Six equal columns rather than a scroller: a shortcut you have to swipe
-          sideways to reach is not a shortcut, and six fits 360px at 60px each —
-          above the 44px touch floor in the dimension that gets tapped. */}
-      <ul className="grid h-14 grid-cols-6">
+      {/* Seven equal columns keep the PDF library reachable alongside Notes. */}
+      <ul className="grid h-14 grid-cols-7">
         {LINKS.map((link) => {
           const { href, label, Icon } = link;
           const active = isActiveHref(href, pathname);

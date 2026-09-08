@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import CategoryModel from "@/models/Category";
 import NoteModel from "@/models/Note";
+import BookModel from "@/models/Book";
 import { Category, CategoryPatch } from "@/types";
 import { wouldCycle } from "@/lib/tree";
 
@@ -97,6 +98,7 @@ export async function DELETE(
   await Promise.all([
     CategoryModel.updateMany({ parentId: id }, { $set: { parentId } }),
     NoteModel.updateMany({ categoryId: id }, { $set: { categoryId: parentId } }),
+    BookModel.updateMany({ categoryId: id }, { $set: { categoryId: parentId } }),
   ]);
 
   await CategoryModel.deleteOne({ id });

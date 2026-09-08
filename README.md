@@ -432,3 +432,44 @@ Special thanks to these amazing projects:
 [Report Bug](https://github.com/MamunCrafts/producivity-tracker/issues) · [Request Feature](https://github.com/MamunCrafts/producivity-tracker/issues)
 
 </div>
+
+## PDF books
+
+Open `/books` to upload PDFs, choose or create a category, and search your library.
+Categories are shared with Notes. Deleting a category moves its books to the parent
+category instead of deleting them. Like the existing notes, this library is shared
+by signed-in users of this app.
+
+Add these server-only values to `.env.local` (or your hosting environment), then
+restart the server. Never use a `NEXT_PUBLIC_` prefix for these credentials.
+
+```dotenv
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+The existing `DATABASE_URL` and an `AUTH_SECRET` are also required. Generate an
+Auth.js secret with `openssl rand -base64 32` and save it in `.env.local`. PDFs are
+uploaded as authenticated raw Cloudinary assets. The reader retrieves them through
+an authenticated app route using a short-lived signed download URL. No unsigned
+upload preset is needed. If your Cloudinary account blocks PDF delivery, enable
+PDF delivery in its security settings. Upload limits also depend on your plan.
+
+The app accepts PDFs up to 100 MB. Your hosting provider or reverse proxy must allow
+multipart request bodies of at least 101 MB and uploads lasting up to 300 seconds.
+Hosts with a smaller request limit need a lower file limit or a direct signed-upload
+flow before large PDFs can be uploaded.
+
+The reader shows two pages on wide screens and one on narrow screens. Use Previous,
+Next, arrow keys, or the page number form to navigate. Page turns respect reduced
+motion preferences. Select text within one page and press **Save highlight**;
+select a saved highlight to return to its page, or remove it from the list.
+Highlights and the last reading page are stored in MongoDB, not embedded in the
+original PDF. Scanned image-only PDFs need OCR before text can be highlighted.
+Password-protected PDFs must be unlocked before uploading.
+
+Use `yarn install --frozen-lockfile`, `yarn lint`, and `yarn build` for this feature.
+After configuring Cloudinary, manually check upload, opening a multi-page PDF,
+forward/backward page turns, mobile layout, highlight alignment after resizing,
+highlight removal, and persistence after reloading.

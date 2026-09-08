@@ -38,7 +38,7 @@ export function NavMenu({ signedIn }: { signedIn: boolean }) {
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <DialogPrimitive.Trigger className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 transition-colors hover:bg-surface hover:text-ink sm:hidden">
+      <DialogPrimitive.Trigger className="flex h-11 w-11 items-center justify-center rounded-md text-ink-2 transition-colors hover:bg-surface hover:text-ink xl:hidden">
         <Menu className="h-5 w-5 shrink-0" aria-hidden />
         <span className="sr-only">Menu</span>
       </DialogPrimitive.Trigger>

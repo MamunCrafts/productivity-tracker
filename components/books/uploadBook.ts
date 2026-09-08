@@ -1,4 +1,4 @@
-// XHR reports bytes sent to our server; Cloudinary saving finishes afterward.
+// XHR reports bytes sent to our server; the R2 upload finishes afterward.
 export function uploadBook(
   form: FormData,
   onProgress: (percentage: number | null) => void,
@@ -16,7 +16,7 @@ export function uploadBook(
 
     request.open("POST", "/api/books");
     request.responseType = "json";
-    // Allow time for both the browser upload and the server's Cloudinary upload.
+    // Allow time for both the browser upload and the server's R2 upload.
     request.timeout = 10 * 60 * 1000;
     request.upload.onprogress = (event) => {
       onProgress(

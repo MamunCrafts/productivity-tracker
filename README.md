@@ -444,17 +444,23 @@ Add these server-only values to `.env.local` (or your hosting environment), then
 restart the server. Never use a `NEXT_PUBLIC_` prefix for these credentials.
 
 ```dotenv
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
+R2_ACCOUNT_ID=your_cloudflare_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET=your_bucket_name
 ```
+
+Create the bucket in the Cloudflare dashboard under **R2**, then create an R2 API
+token with **Object Read & Write** on it; the token's Access Key ID and Secret
+Access Key are the two values above, and the Account ID is shown on the same page.
+The bucket stays private — do not enable a public development URL or a custom
+domain for it.
 
 The existing `DATABASE_URL` and an `AUTH_SECRET` are also required. Generate an
 Auth.js secret with `openssl rand -base64 32` and save it in `.env.local`. PDFs are
-uploaded as authenticated raw Cloudinary assets. The reader retrieves them through
-an authenticated app route using a short-lived signed download URL. No unsigned
-upload preset is needed. If your Cloudinary account blocks PDF delivery, enable
-PDF delivery in its security settings. Upload limits also depend on your plan.
+stored as private objects under `productivity-books/<id>.pdf` in R2, and the reader
+retrieves them through an authenticated app route that streams the bytes — no
+presigned or public URL ever reaches the browser.
 
 The app accepts PDFs up to 100 MB. Your hosting provider or reverse proxy must allow
 multipart request bodies of at least 101 MB and uploads lasting up to 300 seconds.
@@ -470,6 +476,6 @@ original PDF. Scanned image-only PDFs need OCR before text can be highlighted.
 Password-protected PDFs must be unlocked before uploading.
 
 Use `yarn install --frozen-lockfile`, `yarn lint`, and `yarn build` for this feature.
-After configuring Cloudinary, manually check upload, opening a multi-page PDF,
+After configuring R2, manually check upload, opening a multi-page PDF,
 forward/backward page turns, mobile layout, highlight alignment after resizing,
 highlight removal, and persistence after reloading.

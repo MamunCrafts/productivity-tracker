@@ -2,7 +2,7 @@ import { Schema } from "mongoose";
 import { registerModel } from "@/lib/db";
 import type { Book } from "@/types/books";
 
-// Store annotations independently of the immutable Cloudinary PDF.
+// Store annotations independently of the immutable PDF object in R2.
 const rectangleSchema = new Schema(
   {
     x: Number,
@@ -22,11 +22,11 @@ const highlightSchema = new Schema(
   { _id: false },
 );
 
-const bookSchema = new Schema<Book & { publicId: string }>({
+const bookSchema = new Schema<Book & { objectKey: string }>({
   id: { type: String, required: true, unique: true },
   title: { type: String, required: true, maxlength: 200 },
   categoryId: { type: String, default: null, index: true },
-  publicId: { type: String, required: true, select: false },
+  objectKey: { type: String, required: true, select: false },
   sourceFilename: { type: String, required: true },
   bytes: { type: Number, required: true },
   currentPage: { type: Number, default: 1 },

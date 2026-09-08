@@ -277,7 +277,7 @@ export default function BookReader({ id }: { id: string }) {
             }}
             onLoadError={() =>
               setError(
-                "Unable to open this PDF. Check the Cloudinary configuration or try uploading it again.",
+                "Unable to open this PDF. Check the Cloudflare R2 configuration or try uploading it again.",
               )
             }
             onPassword={() =>

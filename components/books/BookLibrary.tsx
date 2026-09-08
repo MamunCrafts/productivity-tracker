@@ -47,7 +47,7 @@ export function BookLibrary() {
       .finally(() => setLoading(false));
   }, []);
 
-  // The server validates the PDF and keeps Cloudinary credentials private.
+  // The server validates the PDF and keeps the R2 credentials private.
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -113,10 +113,10 @@ export function BookLibrary() {
       book.title.toLowerCase().includes(search.toLowerCase()),
   );
 
-  // Byte progress covers transfer to the app, not the subsequent Cloudinary save.
+  // Byte progress covers transfer to the app, not the subsequent R2 save.
   const uploadStatus =
     uploadPhase === "saving"
-      ? "Saving to Cloudinary…"
+      ? "Saving to Cloudflare R2…"
       : uploadPhase === "opening"
         ? "Upload complete. Opening book…"
         : uploadPercentage === null

@@ -35,13 +35,19 @@ export function Colophon() {
             </div>
           </div>
 
-          <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-2 sm:text-base">
+          {/* `sm:text-[1rem]`, never `sm:text-base` — `base` is a colour token
+              here, so `text-base` also sets `color` and, from a media query,
+              beats `text-ink-2`. This line was invisible from `sm` up. */}
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-2 sm:text-[1rem]">
             A private workspace for habits, routines, tasks, notes, and focused
             hours.
           </p>
         </section>
 
-        <ul className="grid grid-cols-3 gap-2 sm:gap-3" aria-label="App details">
+        <ul
+          className="grid grid-cols-3 gap-2 sm:gap-3"
+          aria-label="App details"
+        >
           {FOOTER_DETAILS.map(({ label, value }) => (
             <li
               key={label}

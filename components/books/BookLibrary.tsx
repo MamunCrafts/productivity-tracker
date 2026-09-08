@@ -329,7 +329,7 @@ export function BookLibrary() {
                         {!book.hasCover && (
                           /* Says why this one looks different from its
                              neighbours, rather than leaving it a mystery. */
-                          <p className="mt-2 text-[10px] leading-snug text-ink-3">
+                          <p className="mt-2 pr-12 text-[10px] leading-snug text-ink-3">
                             Cover appears after the first open
                           </p>
                         )}
@@ -379,8 +379,16 @@ export function BookLibrary() {
                     a one-line title lifts its card's meta and controls a line
                     higher than its neighbours', and a shelf of covers stops
                     reading as a grid. `leading-snug` is 1.375, hence 2.75em.
+
+                    `sm:text-[1rem]` and not `sm:text-base`: this theme declares
+                    a colour token called `base`, so `text-base` generates a
+                    *colour* utility — `color: hsl(var(--base))`, the page
+                    background — alongside the font size. In a media query it
+                    then outranks `text-ink` and paints the title in the
+                    background colour. See the note by `--color-base` in
+                    globals.css.
                   */}
-                  <h2 className="mt-3 line-clamp-2 min-h-[2.75em] break-words font-display text-sm leading-snug text-ink transition-colors group-hover:text-amber sm:text-base">
+                  <h2 className="mt-3 line-clamp-2 min-h-[2.75em] break-words font-display text-sm leading-snug text-ink transition-colors group-hover:text-amber sm:text-[1rem]">
                     {book.title}
                   </h2>
                   <p className="text-xs text-ink-3">

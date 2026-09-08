@@ -150,6 +150,18 @@
 }
 
 @theme inline {
+  /*
+    ⚠ `base` collides with Tailwind's `text-base`. Every `--color-*` here
+    generates `bg-*`, `border-*` and `text-*`, so `text-base` is both the 16px
+    font size and `color: hsl(var(--base))` — the page background. Which one
+    wins is cascade order: `text-ink` beats a plain `text-base`, but any
+    `sm:text-base` sits in a media query and beats it, painting text in the
+    background colour. That has now caused three separate "the text is
+    invisible" bugs (a page-number field, the colophon paragraph, a book
+    title), and `PageHeader`'s `text-ink!` exists only to outrank it.
+
+    Until the token is renamed, **write `text-[1rem]`, never `text-base`.**
+  */
   --color-base: hsl(var(--base));
   --color-surface: hsl(var(--surface));
   --color-surface-2: hsl(var(--surface-2));

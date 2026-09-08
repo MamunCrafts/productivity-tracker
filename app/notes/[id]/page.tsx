@@ -317,9 +317,11 @@ export default function NotePage() {
                     onChange={(categoryId) =>
                       dispatch(updateNoteAsync({ id, patch: { categoryId } }))
                     }
-                    // `text-base` below `sm`: iOS zooms in on a select under
-                    // 16px and does not zoom back out.
-                    className="text-base sm:text-sm"
+                    // 16px below `sm`: iOS zooms in on a select under that and
+                    // does not zoom back out. Written `text-[1rem]` because
+                    // `base` is a colour token in this theme, so `text-base`
+                    // would also paint the text in the page background.
+                    className="text-[1rem] sm:text-sm"
                   />
                 </label>
 
@@ -333,9 +335,11 @@ export default function NotePage() {
                     onChange={(habitId) =>
                       dispatch(updateNoteAsync({ id, patch: { habitId } }))
                     }
-                    // `text-base` below `sm`: iOS zooms in on a select under
-                    // 16px and does not zoom back out.
-                    className="text-base sm:text-sm"
+                    // 16px below `sm`: iOS zooms in on a select under that and
+                    // does not zoom back out. Written `text-[1rem]` because
+                    // `base` is a colour token in this theme, so `text-base`
+                    // would also paint the text in the page background.
+                    className="text-[1rem] sm:text-sm"
                   />
                 </label>
               </div>

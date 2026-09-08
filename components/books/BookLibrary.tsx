@@ -7,6 +7,7 @@ import { BookOpen, Upload } from "lucide-react";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BookActions } from "./BookActions";
 import { bookRequest } from "./api";
 import { uploadBook } from "./uploadBook";
 import type { Book } from "@/types/books";
@@ -33,6 +34,7 @@ export function BookLibrary() {
   useEffect(() => () => uploadController.current?.abort(), []);
   const [categoryBusy, setCategoryBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -105,6 +107,27 @@ export function BookLibrary() {
     } finally {
       setCategoryBusy(false);
     }
+  }
+
+  // The row the server wrote replaces the row on the shelf, so an edit that was
+  // trimmed or rejected in part shows as it was stored, not as it was typed.
+  function saveBook(saved: Book) {
+    setBooks((current) =>
+      current.map((book) =>
+        book.id === saved.id ? { ...book, ...saved } : book,
+      ),
+    );
+    setNotice(`Saved “${saved.title}”.`);
+  }
+
+  /*
+    A deleted card takes its own dialog and its own trigger with it, so Radix
+    has nothing to return focus to and nothing on screen says what happened.
+    The line does: it is the only report that an irreversible thing succeeded.
+  */
+  function forgetBook(id: string, title: string) {
+    setBooks((current) => current.filter((book) => book.id !== id));
+    setNotice(`Deleted “${title}” and its PDF.`);
   }
 
   const visibleBooks = books.filter(
@@ -228,6 +251,9 @@ export function BookLibrary() {
             {error}
           </p>
         )}
+        <p role="status" className="min-h-5 text-sm text-ink-2">
+          {notice}
+        </p>
         <div className="flex flex-wrap gap-3">
           <Input
             aria-label="Search books"
@@ -240,7 +266,10 @@ export function BookLibrary() {
             aria-label="Filter by category"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="max-w-full rounded-md border border-line-2 bg-base px-3 py-2 text-sm"
+            // `text-ink` because a bare form control takes the browser's ink,
+            // not the page's, and 16px on a phone or iOS zooms in on focus and
+            // stays there — the same pair every hand-rolled select here carries.
+            className="max-w-full rounded-md border border-line-2 bg-base px-3 py-2 text-base text-ink sm:text-sm"
           >
             <option value="all">All categories</option>
             <option value="none">Uncategorized</option>
@@ -270,10 +299,9 @@ export function BookLibrary() {
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {visibleBooks.map((book) => (
-              <Link
+              <article
                 key={book.id}
-                href={`/books/${book.id}`}
-                className="group overflow-hidden rounded-r-lg border border-line bg-surface transition-shadow hover:shadow-xl focus-visible:outline-2 focus-visible:outline-amber"
+                className="group relative flex flex-col overflow-hidden rounded-r-lg border border-line bg-surface transition-shadow focus-within:shadow-xl hover:shadow-xl"
               >
                 <div className="relative flex min-h-48 flex-col justify-between border-l-8 border-amber-deep bg-surface-2 p-6 shadow-[inset_6px_0_10px_-6px_#000]">
                   <BookOpen size={24} className="text-amber" />
@@ -281,7 +309,7 @@ export function BookLibrary() {
                     {book.title}
                   </h2>
                 </div>
-                <div className="space-y-2 p-4 text-xs text-ink-2">
+                <div className="flex-1 space-y-2 p-4 text-xs text-ink-2">
                   <p>
                     {categories.find(
                       (category) => category.id === book.categoryId,
@@ -294,7 +322,27 @@ export function BookLibrary() {
                       : "Open book"}
                   </p>
                 </div>
-              </Link>
+                {/*
+                  The link is stretched over the card instead of being the card,
+                  so the cover still opens the book while the row underneath
+                  stays operable: an `<a>` cannot contain buttons — nesting
+                  interactive elements is invalid and takes keyboard and screen
+                  reader behaviour with it. The actions sit above this overlay
+                  on `z-20`.
+                */}
+                <Link
+                  href={`/books/${book.id}`}
+                  className="absolute inset-0 z-10 rounded-r-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber"
+                >
+                  <span className="sr-only">Open {book.title}</span>
+                </Link>
+                <BookActions
+                  book={book}
+                  categories={categories}
+                  onSaved={saveBook}
+                  onDeleted={forgetBook}
+                />
+              </article>
             ))}
           </div>
         )}

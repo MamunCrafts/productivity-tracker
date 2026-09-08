@@ -34,9 +34,20 @@
     themes can be tuned apart: a lead that reads right on a dark surface and one
     that reads right on paper are not the same value, and `ink-2` is worn by
     every muted label in the app, so nudging it here would move all of them.
-    Declare the figure you measured beside it. Currently 6.33:1 on the card.
+
+    **Measure it on the page, not on the card.** `PageHeader` sits on `base`
+    with nothing behind it, and that is the one figure that was never taken: the
+    copy of `ink-2` this started as read 6.19:1 on the card and dropped to
+    5.29:1 on paper's page, which is why the line under a 4xl display title came
+    out looking switched off rather than quiet.
+
+    Now 8.36:1 on the card and 9.07:1 on the page — a clear step above `ink-2`
+    and above amber's 7.87, and still well below `ink`'s 13.15, so the title
+    keeps the hierarchy through size and weight rather than through a tone the
+    reader has to squint past. The extra 4% chroma keeps it in the warm band so
+    it reads as intended rather than as grey.
   */
-  --lead: 38 12% 60%;
+  --lead: 38 16% 70%;
 
   /* The single accent: lamp amber. Reserved for focus + the primary action. */
   --amber: 32 71% 63%;
@@ -117,9 +128,11 @@
   --ink-2: 32 13% 38%;
   --ink-3: 32 10% 51%;
 
-  /* The page lead on paper. 5.86:1 on the card — tune this one freely; it is
-     read by nothing but `PageHeader`'s lead. */
-  --lead: 32 13% 38%;
+  /* The page lead on paper: 8.16:1 on the card, 7.37:1 on the page it actually
+     sits on — deliberately close to the dark theme's 8.36 / 9.07 so neither
+     mode has the fainter opening line. Tune this one freely; it is read by
+     nothing but `PageHeader`'s lead. */
+  --lead: 30 16% 30%;
 
   --amber: 30 74% 35%;
   --amber-deep: 28 72% 27%;
@@ -200,7 +213,6 @@
      work associates with steadier attention. Slow enough to follow without
      effort and to ignore entirely once you're working. */
   @keyframes breathe {
-
     0%,
     100% {
       transform: scale(0.92);
@@ -267,7 +279,11 @@
 
 body {
   @apply bg-background text-foreground;
-  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-geist-sans),
+    system-ui,
+    -apple-system,
+    sans-serif;
   /* Roomier than the default: long habit descriptions and modal copy are read,
      not scanned. */
   line-height: 1.6;
@@ -284,7 +300,6 @@ body {
    Stop the loops and keep the static state — the skeleton still reads as a
    skeleton, and the live "focusing" dot still reads as present. */
 @media (prefers-reduced-motion: reduce) {
-
   .animate-shimmer,
   .animate-ping,
   .animate-pulse,

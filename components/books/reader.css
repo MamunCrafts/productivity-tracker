@@ -1,6 +1,23 @@
 /* Frame the original PDF as a physical spread. */
 .reader-desk {
-  overflow: hidden;
+  /*
+    The desk is the scroll container, which is what makes zoom possible: a leaf
+    wider or taller than the desk is pannable rather than clipped. The gutter is
+    reserved whether or not a bar is showing, because the desk's own box is what
+    `BookReader` measures to fit the page — a scrollbar that appeared only when
+    needed would shrink that measurement, refit the page smaller, remove the
+    scrollbar, and oscillate.
+  */
+  overflow: auto;
+  scrollbar-gutter: stable;
+  /*
+    Panning a zoomed leaf is the desk's own native touch scrolling — one finger
+    on an iPad, two on a trackpad — which is why there is no drag-to-pan of our
+    own: a grab gesture would have to fight the text selection that highlights
+    are made from, and selection has to win. `contain` keeps a pan that reaches
+    the edge of the page from rubber-banding the layer behind it.
+  */
+  overscroll-behavior: contain;
   border: 1px solid hsl(var(--line));
   border-radius: 12px;
   background: hsl(var(--surface-2));
@@ -49,9 +66,13 @@
   pointer-events: none;
   z-index: 4;
 }
+/* The colour is the highlight's own, written inline from `lib/highlights.ts` —
+   `multiply` at a third strength is what keeps the black text readable through
+   every one of the five, and is why the swatches are marker colours rather than
+   the habit picker's identity hues. */
 .pdf-highlights span {
   position: absolute;
-  background: #facc15;
+  background: var(--mark, #facc15);
   opacity: 0.35;
   mix-blend-mode: multiply;
 }
@@ -81,4 +102,50 @@
   .turning-leaf {
     display: none;
   }
+}
+
+/*
+  Full page view — the reader takes the whole viewport, and it is a layer rather
+  than a route so a session's selection, page and scroll survive the toggle.
+
+  z-index 45 is deliberate: above the sticky nav and the docked session bar
+  (both z-30/z-40), below every dialog scrim (z-50), so the nav drawer or a
+  session wrap-up still opens over a book instead of under it.
+
+  Native fullscreen is requested on top of this layer where the browser allows
+  it, and the layer is what actually does the work — iOS Safari will not
+  fullscreen anything but a video, so a reader that only called
+  `requestFullscreen` would do nothing at all on a phone. The one thing native
+  fullscreen costs is that a portalled dialog, which renders outside the
+  fullscreen element, is invisible until fullscreen exits; that is why leaving
+  it is bound to Esc, the toggle, and `fullscreenchange` alike.
+*/
+.reader-full {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: hsl(var(--base));
+  padding: 8px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+}
+/*
+  The desk becomes the only thing that grows, and zoom 1 fits the page to it —
+  a "full page" is the whole page, not a wider one you still have to scroll.
+
+  Centring is left to `.book-spread`'s own `margin: auto` rather than
+  `place-items`, and that is the load-bearing part: flexbox resolves auto
+  margins to zero once free space goes negative, so a zoomed-in leaf sits
+  against the top-left and scrolls in both directions instead of overflowing
+  equally off both edges with its start unreachable — the failure `place-items:
+  center` on a scroll container always has.
+*/
+.reader-full .reader-desk {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
 }

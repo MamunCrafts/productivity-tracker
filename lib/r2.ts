@@ -33,6 +33,16 @@ export function bookObjectKey(id: string) {
   return `productivity-books/${id}.pdf`;
 }
 
+/**
+ * The cover derived from page 1. Deriving the key from the id rather than
+ * storing it is what keeps a second field off the record: the book carries a
+ * plain `hasCover` boolean, and nothing about R2's layout ever reaches a
+ * client — a key it could read is a key it could ask us to fetch.
+ */
+export function bookCoverKey(id: string) {
+  return `productivity-books/${id}-cover.jpg`;
+}
+
 // Map provider errors to useful messages without exposing credentials or signatures.
 export function getR2UploadError(error: unknown): {
   message: string;

@@ -106,9 +106,10 @@ export function PageHeader({
         //
         // `text-lead`, not `text-ink-2`: the lead is the one line that has to
         // hold its weight against a 4xl display title in both themes, and
-        // `ink-2` is shared with every muted label in the app. The token starts
-        // as a copy of it (see `--lead` in globals.css) so this is a no-op
-        // today and a one-line change per theme tomorrow.
+        // `ink-2` is shared with every muted label in the app. It began as a
+        // copy of that token and is no longer one — see `--lead` in globals.css
+        // for the figures, and note they are measured against the page, which
+        // is what this header sits on.
         <div
           className={cn(
             "col-start-1 row-start-2 text-sm text-lead sm:text-base",

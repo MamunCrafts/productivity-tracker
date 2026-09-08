@@ -33,6 +33,17 @@ const highlightSchema = new Schema(
   { _id: false },
 );
 
+const inkStrokeSchema = new Schema(
+  {
+    id: { type: String, required: true },
+    page: { type: Number, required: true },
+    color: { type: String, required: true },
+    width: { type: Number, required: true },
+    points: [new Schema({ x: Number, y: Number, pressure: Number }, { _id: false })],
+  },
+  { _id: false },
+);
+
 const bookSchema = new Schema<Book & { objectKey: string }>({
   id: { type: String, required: true, unique: true },
   title: { type: String, required: true, maxlength: 200 },
@@ -45,6 +56,7 @@ const bookSchema = new Schema<Book & { objectKey: string }>({
   // derived from `id`, so there is nothing else to store.
   hasCover: { type: Boolean, default: false },
   highlights: { type: [highlightSchema], default: [] },
+  strokes: { type: [inkStrokeSchema], default: [] },
   createdAt: { type: String, required: true },
 });
 

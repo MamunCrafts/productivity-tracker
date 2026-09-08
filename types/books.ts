@@ -21,6 +21,16 @@ export type Highlight = {
   rectangles: { x: number; y: number; width: number; height: number }[];
 };
 
+export type InkPoint = { x: number; y: number; pressure: number };
+
+export type InkStroke = {
+  id: string;
+  page: number;
+  color: string;
+  width: number;
+  points: InkPoint[];
+};
+
 export type Book = {
   id: string;
   title: string;
@@ -36,5 +46,6 @@ export type Book = {
    */
   hasCover?: boolean;
   highlights: Highlight[];
+  strokes?: InkStroke[];
   createdAt: string;
 };

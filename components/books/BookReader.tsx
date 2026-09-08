@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { Document, Page, pdfjs } from "react-pdf";
 import { motion, useReducedMotion } from "framer-motion";
-import { Maximize2, Minimize2, ZoomIn, ZoomOut } from "lucide-react";
+import { Eraser, Hand, Maximize2, Minimize2, MousePointer2, Pencil, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -17,7 +17,10 @@ import {
   highlightName,
 } from "@/lib/highlights";
 import { bookRequest } from "./api";
-import type { Book, Highlight, HighlightColor } from "@/types/books";
+import { INK_COLORS } from "@/lib/bookInk";
+import { InkLayer, type ReaderTool } from "./InkLayer";
+import { useBookInk } from "./useBookInk";
+import type { Book, Highlight, HighlightColor, InkStroke } from "@/types/books";
 import "react-pdf/dist/Page/TextLayer.css";
 import "./reader.css";
 
@@ -141,6 +144,14 @@ export default function BookReader({ id }: { id: string }) {
   const [status, setStatus] = useState("");
   const [full, setFull] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [tool, setTool] = useState<ReaderTool>("select");
+  const [inkColor, setInkColor] = useState(INK_COLORS[0]);
+  const [inkWidth, setInkWidth] = useState(0.003);
+  const drag = useRef<{ pointer: number; x: number; y: number; left: number; top: number } | null>(null);
+  const saveInk = useCallback((strokes: InkStroke[]) => {
+    setBook((current) => current ? { ...current, strokes } : current);
+  }, []);
+  const ink = useBookInk(id, book?.strokes ?? [], saveInk);
   // Two ways to spend the space, and the reader picks: fit the whole leaf, or
   // spend the full width on it and scroll. On the landscape pages this book
   // turned out to hold, the first leaves bands of desk above and below and the
@@ -188,6 +199,9 @@ export default function BookReader({ id }: { id: string }) {
     Math.max(150, Math.floor(fitted * zoom)),
   );
   const firstPage = spread ? page - ((page - 1) % 2) : page;
+  const lastStroke = ink.strokes.filter((stroke) =>
+    stroke.page === firstPage || (spread && stroke.page === firstPage + 1),
+  ).at(-1);
   // Full page view runs the page row a step smaller; `Input` has no size
   // variants, so its height is spelled out to match whichever the buttons use.
   const navSize = full ? "sm" : "default";
@@ -243,23 +257,30 @@ export default function BookReader({ id }: { id: string }) {
    * only called `requestFullscreen` would do nothing at all on a phone. The
    * request is fired and forgotten — if it throws, the layer is already up.
    */
-  const toggleFull = useCallback((next: boolean) => {
+  const toggleFull = useCallback(async (next: boolean) => {
     setFull(next);
     const node = shell.current as Fullscreenable | null;
     const doc = document as FullscreenDocument;
     try {
       if (next) {
-        void (
+        await (
           node?.requestFullscreen?.({ navigationUI: "hide" }) ??
           node?.webkitRequestFullscreen?.()
         );
       } else if (fullscreenElement()) {
-        void (doc.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
+        await (doc.exitFullscreen?.() ?? doc.webkitExitFullscreen?.());
       }
     } catch {
       // Element fullscreen is unavailable; the layer covers the viewport anyway.
     }
   }, []);
+
+  useEffect(() => {
+    if (!full) return;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; };
+  }, [full]);
 
   // Leaving native fullscreen — Esc, F11, the OS — has to close the layer with
   // it, or the page is left covered by a view the browser thinks it has exited.
@@ -382,7 +403,7 @@ export default function BookReader({ id }: { id: string }) {
 
   // Fractional line rectangles keep highlights aligned after resizing.
   function captureSelection() {
-    if (turn || saving) return;
+    if (turn || saving || tool !== "select") return;
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !selection.rangeCount) {
       setPending(null);
@@ -448,7 +469,7 @@ export default function BookReader({ id }: { id: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      setBook(result);
+      setBook((current) => current ? { ...current, highlights: result.highlights } : result);
       setPending(null);
       window.getSelection()?.removeAllRanges();
       setStatus(done);
@@ -519,6 +540,18 @@ export default function BookReader({ id }: { id: string }) {
               )),
             )}
         </div>
+        {!turning && (
+          <InkLayer
+            key={`${number}-${tool}`}
+            page={number}
+            tool={turn ? "select" : tool}
+            color={inkColor}
+            width={inkWidth}
+            strokes={ink.strokes.filter((stroke) => stroke.page === number)}
+            onAdd={ink.add}
+            onRemove={ink.remove}
+          />
+        )}
       </div>
     );
   }
@@ -550,11 +583,6 @@ export default function BookReader({ id }: { id: string }) {
           >
             {book?.title || "Opening book…"}
           </h1>
-          {!full && (
-            <p className="mt-1 text-sm text-ink-2">
-              Select text on a page, then pick a marker colour to save it.
-            </p>
-          )}
         </div>
         {/* Two groups, and the gap between them is the distinction: how the
             page is shown, then what gets done to it. */}
@@ -667,6 +695,40 @@ export default function BookReader({ id }: { id: string }) {
           </Button>
         </div>
       </header>
+      <div className="flex shrink-0 flex-wrap items-center gap-2" role="toolbar" aria-label="Page editing">
+        <div className="flex rounded-md border border-line-2">
+          {([
+            ["select", MousePointer2, "Select text"],
+            ["pen", Pencil, "Pen"],
+            ["eraser", Eraser, "Erase stroke"],
+            ["hand", Hand, "Drag page"],
+          ] as const).map(([value, Icon, label]) => (
+            <button key={value} type="button" title={label} aria-label={label}
+              aria-pressed={tool === value}
+              onClick={() => { setTool(value); setPending(null); window.getSelection()?.removeAllRanges(); }}
+              className={cn("flex h-11 w-11 items-center justify-center rounded-md", tool === value && "bg-surface-2 text-amber")}
+            ><Icon className="h-5 w-5" aria-hidden /></button>
+          ))}
+        </div>
+        {tool === "pen" && <>
+          {INK_COLORS.map((value, index) => (
+            <button key={value} type="button" aria-label={`Ink ${["black", "red", "blue", "green"][index]}`}
+              title={`Ink ${["black", "red", "blue", "green"][index]}`} aria-pressed={inkColor === value}
+              onClick={() => setInkColor(value)}
+              className={cn("h-9 w-9 rounded-full border-2", inkColor === value ? "border-amber" : "border-line-2")}
+              style={{ backgroundColor: value }} />
+          ))}
+          <input type="range" aria-label="Pen width" title="Pen width" min="0.001" max="0.01" step="0.001"
+            value={inkWidth} onChange={(event) => setInkWidth(Number(event.target.value))} className="h-11 w-24" />
+        </>}
+        <button type="button" title="Undo last stroke on visible pages" aria-label="Undo last stroke on visible pages"
+          disabled={!lastStroke} onClick={() => lastStroke && ink.remove(lastStroke.id)}
+          className="flex h-11 w-11 items-center justify-center rounded-md hover:bg-surface-2 disabled:opacity-40">
+          <Undo2 className="h-5 w-5" aria-hidden />
+        </button>
+        <span role="status" className="text-xs text-ink-2">{ink.error || (ink.saving ? "Saving ink..." : "")}</span>
+        {ink.error && <Button variant="outline" size="sm" onClick={ink.retry}>Retry ink save</Button>}
+      </div>
       {error && (
         <p role="alert" className="my-4 text-danger-ink">
           {error}{" "}
@@ -685,17 +747,31 @@ export default function BookReader({ id }: { id: string }) {
           full ? "shrink-0 truncate text-xs" : "mb-3 min-h-5 text-sm",
         )}
       >
-        {status ||
-          (pending
-            ? `${pending.text.length} characters selected — pick a colour`
-            : full
-              ? "Esc leaves full page view."
-              : "Highlights are saved with this book. Image-only scans do not support text selection.")}
+        {status || (pending ? `${pending.text.length} characters selected` : "")}
       </p>
       <div
         ref={container}
         className="reader-desk"
-        onPointerUp={captureSelection}
+        data-tool={tool}
+        onPointerDown={(event) => {
+          if (tool !== "hand" || event.button !== 0 || drag.current) return;
+          event.preventDefault();
+          event.currentTarget.setPointerCapture(event.pointerId);
+          drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY,
+            left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop };
+        }}
+        onPointerMove={(event) => {
+          const start = drag.current;
+          if (!start || start.pointer !== event.pointerId) return;
+          event.currentTarget.scrollLeft = start.left + start.x - event.clientX;
+          event.currentTarget.scrollTop = start.top + start.y - event.clientY;
+        }}
+        onPointerUp={(event) => {
+          if (drag.current?.pointer === event.pointerId) drag.current = null;
+          captureSelection();
+        }}
+        onPointerCancel={() => { drag.current = null; }}
+        onLostPointerCapture={() => { drag.current = null; }}
         onKeyUp={captureSelection}
       >
         {book && size.width > 0 && (

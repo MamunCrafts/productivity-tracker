@@ -4,6 +4,7 @@ import dbConnect from "@/lib/db";
 import BookModel from "@/models/Book";
 import CategoryModel from "@/models/Category";
 import { isHighlightColor } from "@/lib/highlights";
+import { isInkStroke } from "@/lib/bookInk";
 import { bookCoverKey, getR2, getR2UploadError } from "@/lib/r2";
 import type { Highlight } from "@/types/books";
 
@@ -75,7 +76,16 @@ export async function PATCH(request: Request, { params }: Context) {
   // Positional filters, so recolouring one mark leaves the rest of the array —
   // and any highlight another tab has added since — exactly as it is.
   let arrayFilters: Record<string, unknown>[] | undefined;
-  if (isHighlight(body.highlight)) {
+  if ("stroke" in body || "removeStroke" in body) {
+    if (isInkStroke(body.stroke)) {
+      // Retrying a save cannot duplicate a stroke with the same geometry/id.
+      update = { $addToSet: { strokes: body.stroke } };
+    } else if (typeof body.removeStroke === "string" && body.removeStroke.length > 0 && body.removeStroke.length <= 100) {
+      update = { $pull: { strokes: { id: body.removeStroke } } };
+    } else {
+      return NextResponse.json({ error: "Invalid ink annotation." }, { status: 400 });
+    }
+  } else if (isHighlight(body.highlight)) {
     update = { $push: { highlights: body.highlight } };
   } else if (
     body.recolor &&

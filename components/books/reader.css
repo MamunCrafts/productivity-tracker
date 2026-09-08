@@ -10,19 +10,40 @@
   */
   overflow: auto;
   scrollbar-gutter: stable;
-  /*
-    Panning a zoomed leaf is the desk's own native touch scrolling — one finger
-    on an iPad, two on a trackpad — which is why there is no drag-to-pan of our
-    own: a grab gesture would have to fight the text selection that highlights
-    are made from, and selection has to win. `contain` keeps a pan that reaches
-    the edge of the page from rubber-banding the layer behind it.
-  */
+  /* Keep page panning inside the reader. */
   overscroll-behavior: contain;
   border: 1px solid hsl(var(--line));
-  border-radius: 12px;
+  border-radius: 8px;
   background: hsl(var(--surface-2));
   padding: 24px 0 32px;
   min-height: 300px;
+  max-height: 75dvh;
+}
+.reader-desk[data-tool="hand"] {
+  cursor: grab;
+  touch-action: none;
+}
+.reader-desk[data-tool="hand"]:active { cursor: grabbing; }
+.reader-desk:not([data-tool="select"]) .react-pdf__Page__textContent {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pdf-ink {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 6;
+  pointer-events: none;
+}
+.pdf-ink[data-editing="true"] {
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: crosshair;
 }
 .book-spread {
   display: flex;
@@ -145,7 +166,18 @@
 .reader-full .reader-desk {
   flex: 1;
   min-height: 0;
+  max-height: none;
   display: flex;
   flex-direction: column;
   padding: 0;
+}
+.reader-full {
+  height: 100dvh;
+  padding-top: max(8px, env(safe-area-inset-top));
+  padding-left: max(8px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+}
+.reader-full .reader-desk > .react-pdf__Document {
+  margin-block: auto;
+  flex-shrink: 0;
 }

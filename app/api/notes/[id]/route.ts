@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db";
 import NoteModel from "@/models/Note";
 import { NotePatch } from "@/types";
 import { parseNote } from "@/lib/markdown";
+import { isValidHighlights } from "@/lib/noteHighlights";
 import { MAX_NOTE_BYTES } from "@/lib/noteView";
 
 /**
@@ -17,6 +18,7 @@ const EDITABLE: (keyof NotePatch)[] = [
   "habitId",
   "categoryId",
   "pinnedAt",
+  "highlights",
 ];
 
 function pickEditable(body: Record<string, unknown>): NotePatch {
@@ -58,6 +60,11 @@ export async function PATCH(
     );
   }
 
+  // Reject malformed annotations before Mongoose can cast their values.
+  if (patch.highlights !== undefined && !isValidHighlights(patch.highlights)) {
+    return NextResponse.json({ error: "Invalid highlights" }, { status: 400 });
+  }
+
   const update: Record<string, unknown> = {
     ...patch,
     updatedAt: new Date().toISOString(),
@@ -71,6 +78,8 @@ export async function PATCH(
     }
     const derived = parseNote(patch.content);
     update.blocks = derived.blocks;
+    // New content invalidates offsets saved against the previous text.
+    update.highlights = [];
     update.excerpt = derived.excerpt;
     update.wordCount = derived.wordCount;
     // A title the client sent explicitly still wins over the inferred one.

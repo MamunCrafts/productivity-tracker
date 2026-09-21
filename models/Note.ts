@@ -20,6 +20,17 @@ const NoteSchema = new Schema<NoteDocument>({
   // Mongoose then stores the tree as-is instead of trying to cast each node.
   // The factory default matters — a literal `[]` would be shared by every doc.
   blocks: { type: Schema.Types.Mixed, default: () => [] },
+  // Reading annotations are separate from the original Markdown.
+  highlights: {
+    type: [{
+      _id: false,
+      start: { type: Number, required: true, min: 0 },
+      end: { type: Number, required: true, min: 1 },
+      text: { type: String, required: true },
+      color: { type: String, enum: ["yellow", "green", "blue", "pink", "purple"], required: true },
+    }],
+    default: () => [],
+  },
   excerpt: { type: String, default: "" },
   wordCount: { type: Number, default: 0 },
   tags: { type: [String], default: [] },

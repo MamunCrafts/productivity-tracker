@@ -63,6 +63,16 @@ export interface Category {
 
 export type CategoryPatch = Partial<Pick<Category, "name" | "parentId">>;
 
+/** Saved ranges use offsets in the rendered reader text. */
+export type HighlightColor = "yellow" | "green" | "blue" | "pink" | "purple";
+
+export interface NoteHighlight {
+  start: number;
+  end: number;
+  text: string;
+  color: HighlightColor;
+}
+
 export interface Note {
   id: string;
   title: string;
@@ -70,6 +80,7 @@ export interface Note {
   content: string;
   /** Derived from `content` server-side. Never sent by the client. */
   blocks: Block[];
+  highlights: NoteHighlight[];
   excerpt: string;
   wordCount: number;
   tags: string[];
@@ -89,12 +100,12 @@ export interface Note {
  * markdown is megabytes, and it would be fetched on every route. `content`
  * and `blocks` arrive from `GET /api/notes/[id]` when a note is opened.
  */
-export type NoteMeta = Omit<Note, "content" | "blocks">;
+export type NoteMeta = Omit<Note, "content" | "blocks" | "highlights">;
 
 /**
  * What a client may change. `blocks`, `excerpt` and `wordCount` are absent on
  * purpose — they are recomputed from `content` by the server.
  */
 export type NotePatch = Partial<
-  Pick<Note, "title" | "content" | "tags" | "habitId" | "categoryId" | "pinnedAt">
+  Pick<Note, "title" | "content" | "tags" | "habitId" | "categoryId" | "pinnedAt" | "highlights">
 >;

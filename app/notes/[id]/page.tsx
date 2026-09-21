@@ -17,7 +17,7 @@ import { format, parseISO } from "date-fns";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteNoteAsync, fetchNote, updateNoteAsync } from "@/store/noteSlice";
 import { useFocusBriefing } from "@/components/FocusBriefing";
-import { NoteBody } from "@/components/notes/BlockRenderer";
+import { HighlightedNoteBody } from "@/components/notes/HighlightedNoteBody";
 import { Button } from "@/components/ui/button";
 import { CategoryPicker } from "@/components/notes/CategoryPicker";
 import { TagList } from "@/components/notes/TagList";
@@ -352,7 +352,7 @@ export default function NotePage() {
 
           <div className="mt-8">
             {note ? (
-              <NoteBody blocks={blocks} />
+              <HighlightedNoteBody key={note.id} note={note} blocks={blocks} />
             ) : (
               <div
                 role="status"

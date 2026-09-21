@@ -28,7 +28,7 @@ const initialState: NoteState = {
 function toMeta(note: Note): NoteMeta {
   // The rest pattern is the point: it strips the body off a full note.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { content, blocks, ...meta } = note;
+  const { content, blocks, highlights, ...meta } = note;
   return meta;
 }
 

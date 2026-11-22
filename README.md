@@ -433,6 +433,23 @@ Special thanks to these amazing projects:
 
 </div>
 
+## Home page inspirations
+
+The home page includes **People who inspire me**. Add a person's name, the stage
+where you met (choose one or more: school, college, university, or other), a description, and your
+personal motivation. Profiles support an optional profile picture and up to eight
+gallery images, with a full-size viewer. Use Edit to replace or remove images;
+Remove deletes the profile and its images together after confirmation.
+
+Images must be JPEG, PNG, or WebP and no larger than 1 MB each. Profiles and image
+bytes are saved together in MongoDB using the existing `DATABASE_URL`; no additional
+storage configuration is needed. Like the notes and books, inspirations are shared
+by signed-in users and their images are served through authenticated API routes.
+The hosting request-body limit must support uploads up to 10 MB.
+
+Manually check creating a profile with images, reloading, editing text, replacing
+the picture, removing gallery images, browsing the gallery, and deleting a profile.
+
 ## PDF books
 
 Open `/books` to upload PDFs, choose or create a category, and search your library.

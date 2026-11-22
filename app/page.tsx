@@ -26,6 +26,7 @@ import { ConsistencyHeatmap } from "@/components/analytics/ConsistencyHeatmap";
 import { GoalProgress } from "@/components/analytics/GoalProgress";
 import { PageHeader, PageShell } from "@/components/PageFrame";
 import { ShimmerStat } from "@/components/ui/shimmer";
+import { InspirationSection } from "@/components/inspirations/InspirationSection";
 
 export default function Home() {
   const { habits, logs, status } = useAppSelector((state) => state.habit);
@@ -58,6 +59,8 @@ export default function Home() {
         lead="How your focus time adds up across every habit."
         className="sm:mb-8"
       />
+
+      <InspirationSection />
 
       {/* The filter takes the full row on a phone, where `ExportButton` renders
           nothing; from `sm` the two share it. */}

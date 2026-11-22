@@ -75,7 +75,7 @@ export function InspirationSection() {
                 {person.profilePicture ? <Image unoptimized src={person.profilePicture} alt={person.name} width={56} height={56} className="h-14 w-14 shrink-0 rounded-full object-cover" /> : (
                   <div aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-surface-2 text-xl text-ink-2">{person.name.charAt(0).toUpperCase()}</div>
                 )}
-                <div className="min-w-0"><h3 className="break-words font-semibold text-ink">{person.name}</h3><p className="text-xs text-ink-3">{person.stage}</p></div>
+                <div className="min-w-0"><h3 className="break-words font-semibold text-ink">{person.name}</h3><p className="text-xs text-ink-3">{person.stage.join(", ")}</p></div>
               </div>
               <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-2">{person.description}</p>
               <blockquote className="mt-4 whitespace-pre-wrap break-words border-l-2 border-amber pl-3 text-sm leading-relaxed text-ink">{person.text}</blockquote>

@@ -436,7 +436,7 @@ Special thanks to these amazing projects:
 ## Home page inspirations
 
 The home page includes **People who inspire me**. Add a person's name, the stage
-where you met (school, college, university, or other), a description, and your
+where you met (choose one or more: school, college, university, or other), a description, and your
 personal motivation. Profiles support an optional profile picture and up to eight
 gallery images, with a full-size viewer. Use Edit to replace or remove images;
 Remove deletes the profile and its images together after confirmation.

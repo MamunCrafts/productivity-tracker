@@ -23,7 +23,14 @@ const imageSchema = new Schema<InspirationImage>({
 const inspirationSchema = new Schema<StoredInspiration>({
   id: { type: String, required: true, unique: true },
   name: { type: String, required: true, maxlength: 100 },
-  stage: { type: String, enum: LIFE_STAGES, required: true },
+  stage: {
+    type: [{ type: String, enum: LIFE_STAGES }],
+    required: true,
+    validate: {
+      validator: (stages: string[]) => stages.length > 0,
+      message: "Choose at least one life stage.",
+    },
+  },
   description: { type: String, required: true, maxlength: 1000 },
   text: { type: String, required: true, maxlength: 2000 },
   profilePicture: { type: imageSchema, default: null },

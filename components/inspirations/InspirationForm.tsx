@@ -25,6 +25,7 @@ export function InspirationForm({ person, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (person: Inspiration) => void;
 }) {
+  const [selectedStages, setSelectedStages] = useState(person?.stage ?? ["School"]);
   const [gallery, setGallery] = useState(person?.gallery ?? []);
   const [files, setFiles] = useState<File[]>([]);
   const [profile, setProfile] = useState<File | null>(null);
@@ -80,12 +81,28 @@ export function InspirationForm({ person, onClose, onSaved }: {
               <Label htmlFor="inspiration-name">Name</Label>
               <Input id="inspiration-name" name="name" defaultValue={person?.name} maxLength={100} required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="inspiration-stage">Where we met</Label>
-              <select id="inspiration-stage" name="stage" defaultValue={person?.stage ?? "School"} className="h-11 w-full rounded-md border border-line-2 bg-base px-3 text-ink">
-                {LIFE_STAGES.map((stage) => <option key={stage}>{stage}</option>)}
-              </select>
-            </div>
+            <fieldset className="space-y-2" aria-describedby="inspiration-stage-hint">
+              <legend className="text-sm font-medium text-ink">Where we met</legend>
+              <p id="inspiration-stage-hint" className="text-xs text-ink-3">Choose one or more life stages.</p>
+              <div className="flex flex-wrap gap-3">
+                {LIFE_STAGES.map((stage) => (
+                  <label key={stage} className="flex cursor-pointer items-center gap-2 rounded-md border border-line-2 px-3 py-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      name="stage"
+                      value={stage}
+                      checked={selectedStages.includes(stage)}
+                      onChange={(event) => setSelectedStages((current) =>
+                        event.target.checked ? [...current, stage] : current.filter((item) => item !== stage)
+                      )}
+                      className="h-4 w-4 accent-amber"
+                    />
+                    {stage}
+                  </label>
+                ))}
+              </div>
+              {!selectedStages.length && <p role="alert" className="text-sm text-red-500">Choose at least one life stage.</p>}
+            </fieldset>
             <div className="space-y-2">
               <Label htmlFor="inspiration-description">Description</Label>
               <textarea id="inspiration-description" name="description" defaultValue={person?.description} placeholder="How do you know them? What are they achieving now?" maxLength={1000} required className={textareaClass} />
@@ -99,7 +116,7 @@ export function InspirationForm({ person, onClose, onSaved }: {
               <Input id="inspiration-profile" type="file" name="profilePicture" accept="image/jpeg,image/png,image/webp" onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (file && validateFiles([file])) { setProfile(file); setRemoveProfile(false); }
-                else event.target.value = "";
+                event.target.value = "";
               }} />
               {profile ? <FilePreview file={profile} /> : person?.profilePicture && !removeProfile ? (
                 <Image unoptimized src={person.profilePicture} alt={person.name} width={80} height={80} className="h-20 w-20 rounded-md object-cover" />
@@ -113,11 +130,10 @@ export function InspirationForm({ person, onClose, onSaved }: {
               <p id="inspiration-image-hint" className="text-xs text-ink-3">Up to {MAX_GALLERY_IMAGES} gallery images. JPEG, PNG, or WebP, up to 1 MB each.</p>
               <Input id="inspiration-gallery" type="file" name="gallery" multiple accept="image/jpeg,image/png,image/webp" aria-describedby="inspiration-image-hint" onChange={(event) => {
                 const selected = Array.from(event.target.files ?? []);
-                if (gallery.length + selected.length > MAX_GALLERY_IMAGES) {
+                if (gallery.length + files.length + selected.length > MAX_GALLERY_IMAGES) {
                   setError(`Choose up to ${MAX_GALLERY_IMAGES} gallery images.`);
-                  event.target.value = "";
-                } else if (validateFiles(selected)) setFiles(selected);
-                else event.target.value = "";
+                } else if (validateFiles(selected)) setFiles((current) => [...current, ...selected]);
+                event.target.value = "";
               }} />
               <div className="flex flex-wrap gap-3">
                 {gallery.map((url, index) => (
@@ -138,7 +154,7 @@ export function InspirationForm({ person, onClose, onSaved }: {
           {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save inspiration"}</Button>
+            <Button type="submit" disabled={saving || !selectedStages.length}>{saving ? "Saving…" : "Save inspiration"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

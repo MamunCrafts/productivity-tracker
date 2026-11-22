@@ -1,13 +1,16 @@
 import { LIFE_STAGES, MAX_GALLERY_IMAGES, MAX_IMAGE_BYTES } from "@/types/inspirations";
-import type { Inspiration } from "@/types/inspirations";
+import type { Inspiration, LifeStage } from "@/types/inspirations";
 import type { InspirationImage, StoredInspiration } from "@/models/Inspiration";
 
-export function serializeInspiration(person: StoredInspiration): Inspiration {
+export function serializeInspiration(
+  person: Omit<StoredInspiration, "stage"> & { stage: LifeStage | LifeStage[] },
+): Inspiration {
   const imageUrl = (id: string) => `/api/inspirations/${person.id}/images/${id}`;
   return {
     id: person.id,
     name: person.name,
-    stage: person.stage,
+    // Existing documents may still contain the original single stage.
+    stage: Array.isArray(person.stage) ? person.stage : [person.stage],
     description: person.description,
     text: person.text,
     profilePicture: person.profilePicture ? imageUrl(person.profilePicture.id) : null,
@@ -43,13 +46,14 @@ export async function readInspirationForm(request: Request, existing?: StoredIns
   const name = String(form.get("name") || "").trim();
   const description = String(form.get("description") || "").trim();
   const text = String(form.get("text") || "").trim();
-  const stage = String(form.get("stage") || "");
+  const selectedStages = form.getAll("stage");
   if (!name || name.length > 100 || !description || description.length > 1000 || !text || text.length > 2000) {
     throw new Error("Provide a name (up to 100 characters), description (1,000), and motivation (2,000).");
   }
-  if (!LIFE_STAGES.includes(stage as Inspiration["stage"])) {
-    throw new Error("Choose a valid life stage.");
+  if (!selectedStages.length || selectedStages.some((stage) => !LIFE_STAGES.includes(stage as LifeStage))) {
+    throw new Error("Choose at least one valid life stage.");
   }
+  const stages = LIFE_STAGES.filter((stage) => selectedStages.includes(stage));
   const retainedIds = form.getAll("retainedGallery").map(String);
   const gallery = existing?.gallery.filter((image) => retainedIds.includes(image.id)) ?? [];
   const files = form.getAll("gallery").filter((value): value is File => value instanceof File && value.size > 0);
@@ -61,7 +65,7 @@ export async function readInspirationForm(request: Request, existing?: StoredIns
     ? await readImage(profile)
     : form.get("removeProfile") === "true" ? null : existing?.profilePicture ?? null;
   return {
-    name, description, text, stage: stage as Inspiration["stage"], profilePicture,
+    name, description, text, stage: stages, profilePicture,
     gallery: [...gallery, ...await Promise.all(files.map(readImage))],
   };
 }
